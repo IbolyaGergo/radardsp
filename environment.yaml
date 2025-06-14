@@ -1,0 +1,15 @@
+name: ./envs
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - ipython
+  - matplotlib
+  - numpy
+  - pip
+  - pip:
+    - codespell
+    - mypy
+    - ruff==0.14.11
+  - pytest
+  - scipy
