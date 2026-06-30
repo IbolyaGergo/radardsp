@@ -1,9 +1,10 @@
 import sys
 import numpy as np
-from radarsig.utils import read_pulse_file
+from radarsig.parsers import hex_lines_to_dict
 
 def main(input_file, output_file):
-    data = read_pulse_file(input_file)
+    with open(input_file, 'r') as f:
+        data = hex_lines_to_dict(f)
     np.savez_compressed(output_file, **data)
 
 if __name__ == "__main__":

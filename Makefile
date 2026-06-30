@@ -8,7 +8,7 @@ CONVERTED_DATA_DIR := data/converted
 
 # --- Source files ---
 CONVERTER_SCRIPT := scripts/convert_txt_to_npz.py
-UTILS_SRC := src/radarsig/utils.py
+PARSER_SRC := src/radarsig/parsers.py
 
 # --- Data ---
 RAW_FILES := $(shell find $(RAW_DATA_DIR) -name "*.txt")
@@ -18,7 +18,7 @@ CONVERTED_FILES := $(patsubst $(RAW_DATA_DIR)/%.txt, $(CONVERTED_DATA_DIR)/%.npz
 .PHONY: all
 all: $(CONVERTED_FILES) ## Run conversion from txt to npz
 
-$(CONVERTED_DATA_DIR)/%.npz: $(RAW_DATA_DIR)/%.txt $(CONVERTER_SCRIPT) $(UTILS_SRC)
+$(CONVERTED_DATA_DIR)/%.npz: $(RAW_DATA_DIR)/%.txt $(CONVERTER_SCRIPT) $(PARSER_SRC)
 	@echo "Converting $< -> $@"
 	@mkdir -p $(dir $@)
 	$(PYTHON) $(CONVERTER_SCRIPT) $< $@
