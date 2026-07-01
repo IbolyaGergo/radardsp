@@ -1,6 +1,20 @@
 import numpy as np
 from pathlib import Path
 import logging
+from radarsig import parsers
+
+def load_pulse_from_txt(path: Path, n_samples: int) -> dict[str, np.ndarray]:
+    """Loads and parses a single pulse from a text file."""
+    with open(path, 'r') as f:
+        # Use existing parser
+        data = parsers.hex_lines_to_dict(f)
+    
+    # Validation check
+    for key, arr in data.items():
+        if len(arr) != n_samples:
+            raise ValueError(f"Shape mismatch in {path}: expected {n_samples}, got {len(arr)}")
+            
+    return data
 
 def _get_pulse_idx(file_path: Path) -> int:
     """Helper to extract pulse index from filename."""
