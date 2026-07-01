@@ -103,3 +103,7 @@ def load_pulses(directory: str, data_pattern: str, n_samples: int, bad_pulses: l
         key: np.concatenate(list_of_arrs, axis=0)
         for key, list_of_arrs in buffers.items()
     }
+
+def load_pulseset_from_npz(directory: str, data_pattern: str, n_samples: int, bad_pulses: list[int] | None = None) -> dict[str, np.ndarray]:
+    """Alias for load_pulses to match the naming convention."""
+    return load_pulses(directory, data_pattern, n_samples, bad_pulses)
