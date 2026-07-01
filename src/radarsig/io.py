@@ -16,9 +16,35 @@ def load_pulse_from_txt(path: Path, n_samples: int) -> dict[str, np.ndarray]:
             
     return data
 
+def _aggregate_pulse_data(list_of_dicts: list[dict[str, np.ndarray]]) -> dict[str, np.ndarray]:
+    """Helper to aggregate a list of pulse dictionaries into concatenated arrays."""
+    if not list_of_dicts:
+        return {}
+        
+    # Initialize buffers
+    buffers = {key: [] for key in list_of_dicts[0].keys()}
+    
+    # Fill buffers
+    for pulse_dict in list_of_dicts:
+        for key, arr in pulse_dict.items():
+            buffers[key].append(np.atleast_2d(arr))
+            
+    # Concatenate
+    return {key: np.concatenate(arrs, axis=0) for key, arrs in buffers.items()}
+
 def _get_pulse_idx(file_path: Path) -> int:
     """Helper to extract pulse index from filename."""
     return int(file_path.stem.split('_p')[-1])
+
+def load_pulseset_from_txt(directory: str, data_pattern: str, n_samples: int) -> dict[str, np.ndarray]:
+    """Loads and aggregates all .txt pulses from a directory."""
+    files = sorted(Path(directory).glob(data_pattern), key=_get_pulse_idx)
+    
+    # Load all pulses into a list of dictionaries
+    pulses = [load_pulse_from_txt(f, n_samples) for f in files]
+    
+    # Delegate the complex aggregation logic to our helper
+    return _aggregate_pulse_data(pulses)
 
 def load_pulses(directory: str, data_pattern: str, n_samples: int, bad_pulses: list[int] | None = None) -> dict[str, np.ndarray]:
     """
