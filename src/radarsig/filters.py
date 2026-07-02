@@ -1,8 +1,10 @@
+import tomllib
 from dataclasses import dataclass
-from typing import Iterable
+from typing import Iterable, Self
 import numpy as np
 from scipy.signal import freqz
 from matplotlib import pyplot as plt
+from pathlib import Path
 
 @dataclass
 class Filter:
@@ -10,6 +12,20 @@ class Filter:
     a: np.ndarray
     b: np.ndarray
     label: str | None = None
+
+    @classmethod
+    def from_toml(cls, path: str | Path) -> Self:
+        """Loads filter coefficients from a TOML file."""
+        with open(path, "rb") as f:
+            data = tomllib.load(f)
+        
+        # Convert lists to numpy arrays
+        return cls(
+            a=np.array(data["a"]),
+            b=np.array(data["b"]),
+            # using get handles missing label: returns None
+            label=data.get("label")
+        )
 
     def get_response(self, n: int = 512):
         """Computes frequency response."""
