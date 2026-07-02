@@ -2,17 +2,24 @@
 
 - `data/`
   - `raw/`: Raw input data (e.g., `.txt` files).
-  - `converted/`: Parsed data in format suitable for further analysis (e.g., `.npz`).
+  - `converted/`: Processed data in format suitable for further analysis (e.g., `.npz`).
+- `filters/`: Human-readable filter coefficients (TOML files).
 - `scripts/`: Automation scripts for running the processing pipeline.
 - `src/radarsig/`: Main source code.
   - `__init__.py`: Package initialization.
-  - `data.py`: Data structures containing pulse data.
-  - `filters.py`: Filter data structure containing FIR/IIR filters.
-  - `io.py`: I/O - load data from txt or npz.
-  - `parsers.py`: Parsing raw txt files.
-- `test/`: Test suite.
-  - `data_mock/`: Mock data for unit and integration testing.
+  - `filters.py`: `Filter` dataclass with TOML loading capabilities.
+  - `parsers.py`: Parse hex data from `*.txt` files.
+  - `processing.py`: Fluent `SignalPipeline` class for chained signal processing.
+  - `io.py`: I/O for reading `*.txt` and parsed `*.npz`.
+- `test/`: Test suite using `pytest`.
 
-## Hybrid Approach Architecture
-- **Functional Core**: Pure signal processing functions in `processing.py` using `scipy.signal` and `numpy`. These are easily testable.
-- **Configurable Pipeline**: A class in `processing.py` that encapsulates the state and sequence of operations, holding filter coefficients and intermediate results.
+## Fluent Pipeline Architecture
+The pipeline uses a chained interface to manage state and history:
+
+```python
+pipeline = SignalPipeline(filters=my_filters)
+pipeline.load_data(raw_data) \
+        .apply_filter("bp_1", key="step1") \
+        .downsample(2, key="step2")
+```
+Intermediate results are stored in `pipeline.history`.
