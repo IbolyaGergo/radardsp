@@ -19,15 +19,17 @@ def mock_data():
 def test_pipeline_chaining(pipeline, mock_data):
     # Test chaining with load_data
     pipeline.load_data(mock_data) \
-            .apply_filter("bp_filter", "step1") \
-            .apply_filter("bp_filter", "step2")
+            .apply_filter("bp_filter", key="step1") \
+            .apply_filter("bp_filter", key="step2") \
+            .downsample(2, key="step3")
     
     assert "step1" in pipeline.history
     assert "step2" in pipeline.history
-    assert len(pipeline.history) == 2
+    assert "step3" in pipeline.history
+    assert len(pipeline.history) == 3
     assert isinstance(pipeline.current_data, np.ndarray)
     
 def test_pipeline_no_data_error(pipeline):
     # Ensure it fails if no data is loaded
     with pytest.raises(ValueError, match="No data provided or loaded"):
-        pipeline.apply_filter("bp_filter", "step1")
+        pipeline.apply_filter("bp_filter", key="step1")
