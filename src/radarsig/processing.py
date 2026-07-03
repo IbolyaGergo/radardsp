@@ -8,8 +8,10 @@ def _apply_filter(data: np.ndarray, filt: Filter) -> np.ndarray:
     return lfilter(filt.b, filt.a, data)
 
 def _downsample(data: np.ndarray, factor: int) -> np.ndarray:
-    """Private helper to downsample data."""
-    return data[::factor]
+    """Private helper to downsample data along the sample dimension."""
+    if data.ndim == 1:
+        return data[::factor]
+    return data[:, ::factor]
 
 class SignalPipeline:
     """Encapsulates the signal processing pipeline state."""
