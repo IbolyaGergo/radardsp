@@ -1,5 +1,7 @@
 # Agent Behavioral Guidelines
 
+Read *.md
+
 ## Communication & Process
 - **Collaborative Flow**: Always suggest and discuss proposed changes. Never modify files without explicit user confirmation.
 - **Incrementalism**: Avoid "big bang" refactoring. Prefer small, verifiable steps.

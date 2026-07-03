@@ -17,9 +17,18 @@
 The pipeline uses a chained interface to manage state and history:
 
 ```python
-pipeline = SignalPipeline(filters=my_filters)
+pipeline = SignalPipeline(filters=my_filters, fs=250e6)
 pipeline.load_data(raw_data) \
         .apply_filter("bp_1", key="step1") \
         .downsample(2, key="step2")
 ```
 Intermediate results are stored in `pipeline.history`.
+
+## Pipeline Execution Flow
+The pipeline follows this sequence (based on `Processing.m`):
+1. `load_data` (raw input, fs=250MHz)
+2. `apply_filter` (BP Filter)
+3. `downsample` (Factor=2, fs=125MHz)
+4. `mix` (Frequency=...)
+5. `apply_filter` (LP Filter - *TO BE IMPLEMENTED*)
+6. `downsample` (Factor=16 - *TO BE IMPLEMENTED*)
