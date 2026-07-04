@@ -11,7 +11,7 @@ MOCK_PULSE_PATH = Path("test/data_mock/sample_pulse.txt")
 MOCK_PULSE_N_SAMPLES = 10
 
 def test_load_pulse_from_txt_success():
-    data = load_pulse_from_txt(MOCK_PULSE_PATH, n_samples=MOCK_PULSE_N_SAMPLES) 
+    data = load_pulse_from_txt(MOCK_PULSE_PATH) 
 
     expected_keys = {'C', 'Tx', 'H_Hi', 'H_Lo', 'V_Hi', 'V_Lo'}
     assert set(data.keys()) == expected_keys
@@ -20,8 +20,8 @@ def test_load_pulse_from_txt_success():
         assert len(data[key]) == MOCK_PULSE_N_SAMPLES
 
 def test_load_pulse_from_txt_n_samples_mismatch():
-    with pytest.raises(ValueError, match="Shape mismatch in test/data_mock/sample_pulse.txt"):
-        load_pulse_from_txt(MOCK_PULSE_PATH, n_samples=MOCK_PULSE_N_SAMPLES-1)
+    # Validation is no longer in the single pulse loader
+    pass
 
 def test_load_pulseset_from_txt(tmp_path):
     d = tmp_path / "data"
@@ -43,7 +43,7 @@ def test_pulse_sorting():
 
 def test_raw_vs_converted_consistency_mocked(tmp_path):
     # 1. Setup: Load raw data from mock TXT
-    raw_pulse = load_pulse_from_txt(MOCK_PULSE_PATH, n_samples=MOCK_PULSE_N_SAMPLES)
+    raw_pulse = load_pulse_from_txt(MOCK_PULSE_PATH)
     
     # 2. Setup: Create a corresponding mock NPZ file
     npz_dir = tmp_path / "converted"

@@ -4,7 +4,7 @@ from radarsig.io import load_pulse_from_txt
 from radarsig.parsers import hex_lines_to_dict
 
 def main(input_file, output_file):
-    data = load_pulse_from_txt(input_file, n_samples=30000)
+    data = load_pulse_from_txt(input_file)
     data['fs'] = 250e6 # 250 MHz samples/sec
     np.savez_compressed(output_file, **data)
 
