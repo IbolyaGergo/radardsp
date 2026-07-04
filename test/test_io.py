@@ -41,10 +41,6 @@ def test_pulse_sorting():
     sorted_files = sorted(files, key=_get_pulse_idx)
     assert sorted_files == [Path("pulse_p1.txt"), Path("pulse_p2.txt"), Path("pulse_p9.txt"), Path("pulse_p10.txt")]
 
-def test_raw_vs_converted_consistency():
-    # Placeholder for actual implementation based on previous discussions
-    pass
-
 def test_raw_vs_converted_consistency_mocked(tmp_path):
     # 1. Setup: Load raw data from mock TXT
     raw_pulse = load_pulse_from_txt(MOCK_PULSE_PATH, n_samples=MOCK_PULSE_N_SAMPLES)
