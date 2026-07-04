@@ -1,7 +1,11 @@
 import numpy as np
-from pathlib import Path
-import logging
 from radarsig import parsers
+from pathlib import Path
+from typing import NamedTuple
+
+class PulseSet(NamedTuple):
+    pulses: dict[str, np.ndarray]
+    fs: float
 
 def load_pulse_from_txt(path: Path, n_samples: int) -> dict[str, np.ndarray]:
     """Loads and parses a single pulse from a text file."""
@@ -36,7 +40,7 @@ def _get_pulse_idx(file_path: Path) -> int:
     """Helper to extract pulse index from filename."""
     return int(file_path.stem.split('_p')[-1])
 
-def load_pulseset_from_txt(directory: str, data_pattern: str, n_samples: int) -> dict[str, np.ndarray]:
+def load_pulseset_from_txt(directory: str, data_pattern: str, n_samples: int, fs: float = 250_000_000.0) -> PulseSet:
     """Loads and aggregates all .txt pulses from a directory."""
     files = sorted(Path(directory).glob(data_pattern), key=_get_pulse_idx)
     
@@ -44,75 +48,39 @@ def load_pulseset_from_txt(directory: str, data_pattern: str, n_samples: int) ->
     pulses = [load_pulse_from_txt(f, n_samples) for f in files]
     
     # Delegate the complex aggregation logic to our helper
-    return _aggregate_pulse_data(pulses)
+    return PulseSet(pulses=_aggregate_pulse_data(pulses), fs=fs)
 
-def load_pulses(directory: str, data_pattern: str, n_samples: int, bad_pulses: list[int] | None = None) -> tuple[dict[str, np.ndarray], float]:
-    """
-    Loads .npz files matching a glob pattern and aggregates them.
+def load_pulse_from_npz(path: Path, n_samples: int) -> tuple[dict[str, np.ndarray], float]:
+    """Loads and validates a single pulse from an npz file."""
+    with np.load(path) as data:
+        fs = float(data['fs'])
+        data_dict = {key: np.atleast_2d(data[key].copy()) for key in data.files if key != 'fs'}
+        
+        # Validation
+        for key, arr in data_dict.items():
+            if arr.shape[1] != n_samples:
+                raise ValueError(f"Shape mismatch in {path}: expected {n_samples}, got {arr.shape[1]}")
+                
+        return data_dict, fs
 
-    Args:
-        directory: Directory containing the files.
-        data_pattern: A glob pattern string (e.g., '*_p*.npz').
-        n_samples: Expected number of samples per pulse.
-        bad_pulses: List of pulse indices to skip.
-
-    Returns:
-        A tuple of (data_dictionary, fs).
-    """
-    bad_pulses = bad_pulses or []
-    buffers = {}
-    fs = None
-    
-    # Sort files numerically by the pulse index extracted from filename
+def load_pulseset_from_npz(directory: str, data_pattern: str, n_samples: int) -> PulseSet:
+    """Loads and aggregates all .npz pulses from a directory."""
     files = sorted(Path(directory).glob(data_pattern), key=_get_pulse_idx)
     
-    if not files:
-        logging.warning(f"No files found matching pattern: {directory}/{data_pattern}")
-        return {}, 250_000_000.0
-
+    pulse_results = []
+    fs = None
+    
     for file_path in files:
-        # Extract pulse index using the same helper
         try:
-            pulse_idx = _get_pulse_idx(file_path)
-        except (ValueError, IndexError):
-            logging.warning(f"Could not extract pulse index from {file_path}, skipping.")
-            continue
-            
-        if pulse_idx in bad_pulses:
-            continue
-
-        try:
-            with np.load(file_path) as data:
-                # Capture fs from the first file processed
-                if fs is None:
-                    fs = float(data['fs'])
-                
-                for key in data.files:
-                    if key == 'fs':
-                        continue
-                    
-                    if key not in buffers:
-                        buffers[key] = []
-                    
-                    arr = np.atleast_2d(data[key].copy())
-                    
-                    if arr.shape[1] != n_samples:
-                        raise ValueError(f"Shape mismatch in {file_path}: expected {n_samples}, got {arr.shape[1]}")
-                        
-                    buffers[key].append(arr)
+            data, current_fs = load_pulse_from_npz(file_path, n_samples)
+            if fs is None:
+                fs = current_fs
+            pulse_results.append(data)
         except Exception as e:
             logging.error(f"Error loading {file_path}: {e}")
             continue
-                
-    if not buffers:
-        return {}, fs or 250_000_000.0
-
-    data_dict = {
-        key: np.concatenate(list_of_arrs, axis=0)
-        for key, list_of_arrs in buffers.items()
-    }
-    return data_dict, fs or 250_000_000.0
-
-def load_pulseset_from_npz(directory: str, data_pattern: str, n_samples: int, bad_pulses: list[int] | None = None) -> tuple[dict[str, np.ndarray], float]:
-    """Alias for load_pulses to match the naming convention."""
-    return load_pulses(directory, data_pattern, n_samples, bad_pulses)
+            
+    if not pulse_results:
+        return PulseSet(pulses={}, fs=250_000_000.0)
+        
+    return PulseSet(pulses=_aggregate_pulse_data(pulse_results), fs=fs or 250_000_000.0)

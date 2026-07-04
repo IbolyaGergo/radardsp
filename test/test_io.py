@@ -3,7 +3,7 @@ import numpy as np
 import shutil
 from pathlib import Path
 from radarsig.io import (
-    load_pulses, load_pulse_from_txt, load_pulseset_from_txt, _get_pulse_idx,
+    load_pulse_from_txt, load_pulseset_from_txt, _get_pulse_idx,
     load_pulseset_from_npz
 )
 
@@ -32,9 +32,9 @@ def test_load_pulseset_from_txt(tmp_path):
     shutil.copy(MOCK_PULSE_PATH, d / "pulse_p9.txt")
     shutil.copy(MOCK_PULSE_PATH, d / "pulse_p10.txt")
 
-    data = load_pulseset_from_txt(str(d), "*.txt", n_samples=MOCK_PULSE_N_SAMPLES)
+    pulseset = load_pulseset_from_txt(str(d), "*.txt", n_samples=MOCK_PULSE_N_SAMPLES)
 
-    assert len(data['C'][0]) == 10
+    assert len(pulseset.pulses['C'][0]) == 10
 
 def test_pulse_sorting():
     files = [Path("pulse_p10.txt"), Path("pulse_p1.txt"), Path("pulse_p9.txt"), Path("pulse_p2.txt")]
@@ -65,8 +65,8 @@ def test_raw_vs_converted_consistency_mocked(tmp_path):
     shutil.copy(MOCK_PULSE_PATH, raw_dir / "pulse_p1.txt")
     
     raw_data = load_pulseset_from_txt(str(raw_dir), "*.txt", n_samples=MOCK_PULSE_N_SAMPLES)
-    conv_data, _ = load_pulseset_from_npz(str(npz_dir), "*.npz", n_samples=MOCK_PULSE_N_SAMPLES)
+    conv_data = load_pulseset_from_npz(str(npz_dir), "*.npz", n_samples=MOCK_PULSE_N_SAMPLES)
     
     # 4. Assert: Compare
-    for key in raw_data:
-        np.testing.assert_allclose(raw_data[key], conv_data[key])
+    for key in raw_data.pulses:
+        np.testing.assert_allclose(raw_data.pulses[key], conv_data.pulses[key])
