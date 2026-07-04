@@ -32,7 +32,7 @@ def test_load_pulseset_from_txt(tmp_path):
     shutil.copy(MOCK_PULSE_PATH, d / "pulse_p9.txt")
     shutil.copy(MOCK_PULSE_PATH, d / "pulse_p10.txt")
 
-    pulseset = load_pulseset_from_txt(str(d), "*.txt", n_samples=MOCK_PULSE_N_SAMPLES)
+    pulseset = load_pulseset_from_txt(d / "*.txt", n_samples=MOCK_PULSE_N_SAMPLES)
 
     assert len(pulseset.pulses['C'][0]) == 10
 
@@ -60,8 +60,8 @@ def test_raw_vs_converted_consistency_mocked(tmp_path):
     raw_dir.mkdir()
     shutil.copy(MOCK_PULSE_PATH, raw_dir / "pulse_p1.txt")
     
-    raw_data = load_pulseset_from_txt(str(raw_dir), "*.txt", n_samples=MOCK_PULSE_N_SAMPLES)
-    conv_data = load_pulseset_from_npz(str(npz_dir), "*.npz", n_samples=MOCK_PULSE_N_SAMPLES)
+    raw_data = load_pulseset_from_txt(raw_dir / "*.txt", n_samples=MOCK_PULSE_N_SAMPLES)
+    conv_data = load_pulseset_from_npz(npz_dir / "*.npz", n_samples=MOCK_PULSE_N_SAMPLES)
     
     # 4. Assert: Compare
     for key in raw_data.pulses:

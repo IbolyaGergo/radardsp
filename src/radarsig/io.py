@@ -41,9 +41,10 @@ def _get_pulse_idx(file_path: Path) -> int:
     """Helper to extract pulse index from filename."""
     return int(file_path.stem.split('_p')[-1])
 
-def load_pulseset_from_txt(directory: str, data_pattern: str, n_samples: int, fs: float = 250_000_000.0) -> PulseSet:
+def load_pulseset_from_txt(path_glob: str, n_samples: int, fs: float = 250_000_000.0) -> PulseSet:
     """Loads and aggregates all .txt pulses from a directory."""
-    files = sorted(Path(directory).glob(data_pattern), key=_get_pulse_idx)
+    path = Path(path_glob)
+    files = sorted(path.parent.glob(path.name), key=_get_pulse_idx)
     
     # Load all pulses into a list of dictionaries
     pulses = []
@@ -63,9 +64,10 @@ def load_pulse_from_npz(path: Path) -> tuple[dict[str, np.ndarray], float]:
         
         return data_dict, fs
 
-def load_pulseset_from_npz(directory: str, data_pattern: str, n_samples: int) -> PulseSet:
+def load_pulseset_from_npz(path_glob: str, n_samples: int) -> PulseSet:
+    path = Path(path_glob)
     """Loads and aggregates all .npz pulses from a directory."""
-    files = sorted(Path(directory).glob(data_pattern), key=_get_pulse_idx)
+    files = sorted(path.parent.glob(path.name), key=_get_pulse_idx)
     
     pulse_results = []
     first_fs = None
