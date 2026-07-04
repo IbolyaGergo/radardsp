@@ -1,3 +1,5 @@
+import logging
+import math
 import numpy as np
 from radarsig import parsers
 from pathlib import Path
@@ -68,13 +70,20 @@ def load_pulseset_from_npz(directory: str, data_pattern: str, n_samples: int) ->
     files = sorted(Path(directory).glob(data_pattern), key=_get_pulse_idx)
     
     pulse_results = []
-    fs = None
+    first_fs = None
     
     for file_path in files:
         try:
             data, current_fs = load_pulse_from_npz(file_path, n_samples)
-            if fs is None:
-                fs = current_fs
+            
+            if first_fs is None:
+                first_fs = current_fs
+            elif not math.isclose(current_fs, first_fs):
+                raise ValueError(
+                    f"Sampling rate mismatch in {file_path}: "
+                    f"expected {first_fs}, got {current_fs}"
+                )
+            
             pulse_results.append(data)
         except Exception as e:
             logging.error(f"Error loading {file_path}: {e}")
@@ -83,4 +92,4 @@ def load_pulseset_from_npz(directory: str, data_pattern: str, n_samples: int) ->
     if not pulse_results:
         return PulseSet(pulses={}, fs=250_000_000.0)
         
-    return PulseSet(pulses=_aggregate_pulse_data(pulse_results), fs=fs or 250_000_000.0)
+    return PulseSet(pulses=_aggregate_pulse_data(pulse_results), fs=first_fs or 250_000_000.0)
