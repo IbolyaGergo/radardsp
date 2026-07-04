@@ -1,35 +1,17 @@
 import tomllib
-from dataclasses import dataclass
-from typing import Iterable, Self
 import numpy as np
 from scipy.signal import freqz
 from matplotlib import pyplot as plt
 from pathlib import Path
 
-@dataclass
-class Filter:
-    """A container for filter coefficients."""
-    a: np.ndarray
-    b: np.ndarray
-    label: str | None = None
+def load_filter_from_toml(path: str | Path) -> tuple[np.ndarray, np.ndarray]:
+    with open(path, "rb") as f:
+        data = tomllib.load(f)
 
-    @classmethod
-    def from_toml(cls, path: str | Path) -> Self:
-        """Loads filter coefficients from a TOML file."""
-        with open(path, "rb") as f:
-            data = tomllib.load(f)
-        
-        # Convert lists to numpy arrays
-        return cls(
-            a=np.array(data["a"]),
-            b=np.array(data["b"]),
-            # using get handles missing label: returns None
-            label=data.get("label")
-        )
+    b=np.array(data["b"])
+    a=np.array(data["a"])
 
-    def get_response(self, n: int = 512):
-        """Computes frequency response."""
-        return freqz(self.b, self.a, worN=n)
+    return b, a
 
 def _format_freqz_axes(ax_mag: plt.Axes, ax_phase: plt.Axes):
     """Encapsulates all styling/aesthetics."""
@@ -40,33 +22,19 @@ def _format_freqz_axes(ax_mag: plt.Axes, ax_phase: plt.Axes):
     ax_phase.set_xlabel("Frequency [rad/sample]")
     ax_phase.grid(True)
 
-def _add_filter_to_axes(ax_mag: plt.Axes, ax_phase: plt.Axes, filt: Filter,
-                       **kwargs) -> None:
-    w, h = filt.get_response()
-
-    ax_mag.plot(w, 20 * np.log10(np.abs(h)), label=filt.label, **kwargs)
-    ax_phase.plot(w, np.unwrap(np.angle(h)), label=filt.label, **kwargs)
-
-def plot_filters(filters: Iterable[Filter], n: int = 512, axes=None, **kwargs):
-    """
-    Plots magnitude and phase for multiple filters on subplots.
-    
-    Accepts optional `axes` (tuple of magnitude and phase axes) to add to an existing plot.
-    Accepts arbitrary keyword arguments to pass to ax.plot().
-    """
-    # 1. If no axes provided, create them and apply formatting
+def plot_filter_response(b, a, worN: int = 512, axes=None, label: str | None =
+                         None) -> tuple["fig", "axes"]:
     if axes is None:
         fig, axes = plt.subplots(2, 1, tight_layout=True, figsize=(8, 6))
         _format_freqz_axes(*axes)
-    
-    ax_mag, ax_phase = axes
-    
-    # 2. Plot the data
-    for f in filters:
-        _add_filter_to_axes(ax_mag, ax_phase, f, **kwargs)
 
-    # 3. Update legends to include new lines
-    if any(f.label for f in filters):
+    w, h = freqz(b, a, worN=worN)
+
+    ax_mag, ax_phase = axes
+    ax_mag.plot(w, 20 * np.log10(np.abs(h)), label=label)
+    ax_phase.plot(w, np.unwrap(np.angle(h)), label=label)
+
+    if label:
         ax_mag.legend()
         ax_phase.legend()
 
