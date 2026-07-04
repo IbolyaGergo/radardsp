@@ -46,7 +46,7 @@ def load_pulseset_from_txt(directory: str, data_pattern: str, n_samples: int) ->
     # Delegate the complex aggregation logic to our helper
     return _aggregate_pulse_data(pulses)
 
-def load_pulses(directory: str, data_pattern: str, n_samples: int, bad_pulses: list[int] | None = None) -> dict[str, np.ndarray]:
+def load_pulses(directory: str, data_pattern: str, n_samples: int, bad_pulses: list[int] | None = None) -> tuple[dict[str, np.ndarray], float]:
     """
     Loads .npz files matching a glob pattern and aggregates them.
 
@@ -57,17 +57,18 @@ def load_pulses(directory: str, data_pattern: str, n_samples: int, bad_pulses: l
         bad_pulses: List of pulse indices to skip.
 
     Returns:
-        A dictionary of concatenated numpy arrays.
+        A tuple of (data_dictionary, fs).
     """
     bad_pulses = bad_pulses or []
     buffers = {}
+    fs = None
     
     # Sort files numerically by the pulse index extracted from filename
     files = sorted(Path(directory).glob(data_pattern), key=_get_pulse_idx)
     
     if not files:
         logging.warning(f"No files found matching pattern: {directory}/{data_pattern}")
-        return {}
+        return {}, 250_000_000.0
 
     for file_path in files:
         # Extract pulse index using the same helper
@@ -82,7 +83,14 @@ def load_pulses(directory: str, data_pattern: str, n_samples: int, bad_pulses: l
 
         try:
             with np.load(file_path) as data:
+                # Capture fs from the first file processed
+                if fs is None:
+                    fs = float(data['fs'])
+                
                 for key in data.files:
+                    if key == 'fs':
+                        continue
+                    
                     if key not in buffers:
                         buffers[key] = []
                     
@@ -97,13 +105,14 @@ def load_pulses(directory: str, data_pattern: str, n_samples: int, bad_pulses: l
             continue
                 
     if not buffers:
-        return {}
+        return {}, fs or 250_000_000.0
 
-    return {
+    data_dict = {
         key: np.concatenate(list_of_arrs, axis=0)
         for key, list_of_arrs in buffers.items()
     }
+    return data_dict, fs or 250_000_000.0
 
-def load_pulseset_from_npz(directory: str, data_pattern: str, n_samples: int, bad_pulses: list[int] | None = None) -> dict[str, np.ndarray]:
+def load_pulseset_from_npz(directory: str, data_pattern: str, n_samples: int, bad_pulses: list[int] | None = None) -> tuple[dict[str, np.ndarray], float]:
     """Alias for load_pulses to match the naming convention."""
     return load_pulses(directory, data_pattern, n_samples, bad_pulses)

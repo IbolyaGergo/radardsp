@@ -56,7 +56,7 @@ def test_raw_vs_converted_consistency_mocked(tmp_path):
     
     # Save the parsed raw_pulse dict to .npz
     # We use **raw_pulse to save all arrays in the dict
-    np.savez(npz_path, **raw_pulse)
+    np.savez(npz_path, fs=250_000_000.0, **raw_pulse)
     
     # 3. Execution: Load via orchestrators
     # We copy the mock TXT to a new dir to mimic the "dataset" structure
@@ -65,7 +65,7 @@ def test_raw_vs_converted_consistency_mocked(tmp_path):
     shutil.copy(MOCK_PULSE_PATH, raw_dir / "pulse_p1.txt")
     
     raw_data = load_pulseset_from_txt(str(raw_dir), "*.txt", n_samples=MOCK_PULSE_N_SAMPLES)
-    conv_data = load_pulseset_from_npz(str(npz_dir), "*.npz", n_samples=MOCK_PULSE_N_SAMPLES)
+    conv_data, _ = load_pulseset_from_npz(str(npz_dir), "*.npz", n_samples=MOCK_PULSE_N_SAMPLES)
     
     # 4. Assert: Compare
     for key in raw_data:
