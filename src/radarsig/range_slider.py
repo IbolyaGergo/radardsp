@@ -12,23 +12,23 @@ class RangeSlider:
 
         # Setup slider axes
         self.ax_slider = plt.axes([0.2, 0.05, 0.6, 0.03])
-        self.slider = Slider(self.ax_slider, 'Range idx', 0, x.shape[1]-1, valinit=0, valfmt='%d')
+        self.slider = Slider(self.ax_slider, 'Range idx', 0, x.shape[0]-1, valinit=0, valfmt='%d')
         self.slider.on_changed(self.update)
 
         self.update(0)
         plt.show()
 
     def update(self, val):
-        col_idx = int(self.slider.val)
-        start = max(0, col_idx - self.window_size // 2)
-        end = min(self.x.shape[1], start + self.window_size)
+        row_idx = int(self.slider.val)
+        start = max(0, row_idx - self.window_size // 2)
+        end = min(self.x.shape[0], start + self.window_size)
 
         self.ax.clear()
-        # Plot the window of columns
-        for col in range(start, end):
-            self.ax.plot(self.x.real[:, col], self.x.imag[:, col], '-o', alpha=0.5)
+        # Plot the window of rows
+        for row in range(start, end):
+            self.ax.plot(self.x.real[row, :], self.x.imag[row, :], '-o', alpha=0.5)
 
-        self.ax.set_title(f"Range idx: {start} to {end} (Centered: {col_idx})")
+        self.ax.set_title(f"Range idx: {start} to {end} (Centered: {row_idx})")
         self.ax.grid(True)
         self.fig.canvas.draw_idle()
 
