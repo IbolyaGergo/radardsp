@@ -69,17 +69,3 @@ class RangeSlider:
         self.ax.set_title(f"Axis {self.axis} idx: {start} to {end} (Centered: {idx})")
         self.ax.grid(True)
         self.fig.canvas.draw_idle()
-
-def plot_iq(ax, data_slice, x):
-    """
-    Plots the real vs. imag part of each row in the slice.
-    'x' is currently unused in this specific plot, but available if needed.
-    """
-    for i in range(data_slice.shape[0]):
-        row = data_slice[i, :]
-        i, q = row.real, row.imag
-        ax.plot(i, q, '-o', alpha=0.5)
-
-# Usage example (you can call this from your main script/notebook)
-# from radar_viewer import RangeSlider
-# slider = RangeSlider(your_radar_data)
