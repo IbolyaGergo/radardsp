@@ -20,6 +20,14 @@ def process_channel_data(data: np.ndarray, n_pulse: int = 14):
         y[:n_total].reshape((pulse_len, n_pulse))
     )
 
+def process_filter_coeffs(data: np.ndarray, n_tap: int = 8):
+    b = data[0::2][:n_tap].copy()
+    a = data[1::2][:n_tap].copy()
+
+    a[1:] = -a[1:]
+
+    return b, a
+
 def load_fpga_ram_binary_to_iq(i_path: Path, q_path: Path, offset_dtype: int = 0, n_pulse: int = 14):
     i_data = load_binary_to_array(i_path, offset_dtype=offset_dtype)
     q_data = load_binary_to_array(q_path, offset_dtype=offset_dtype)
@@ -28,3 +36,8 @@ def load_fpga_ram_binary_to_iq(i_path: Path, q_path: Path, offset_dtype: int = 0
     x_q, y_q = process_channel_data(q_data, n_pulse=n_pulse)
 
     return (x_i + 1j * x_q), (y_i + 1j * y_q)
+
+def load_filter_coeffs_from_binary(path: Path, n_tap: int = 8):
+    data = load_binary_to_array(path)
+
+    return process_filter_coeffs(data, n_tap=n_tap)
