@@ -5,6 +5,7 @@ from radarsig.fpga_io import (
     load_binary_to_array,
     process_channel_data,
     process_filter_coeffs,
+    find_iq_pairs,
 )
 
 # test_load_binary_to_array() {{{1
@@ -40,4 +41,18 @@ def test_process_filter_coeffs():
     np.testing.assert_array_equal(b, [10, 20, 30, 40])
     np.testing.assert_array_equal(a, [1, 2, -3, 4])
 
+# test_find_iq_pairs() {{{1
+def test_find_iq_pairs(tmp_path):
+    (tmp_path / "000_i.data").touch()
+    (tmp_path / "000_q.data").touch()
+    (tmp_path / "001_i.data").touch()
+    (tmp_path / "001_q.data").touch()
 
+    # Unmatched orphan file
+    (tmp_path / "002_i.data").touch()
+
+    pairs = find_iq_pairs(tmp_path)
+
+    assert len(pairs) == 2
+    assert pairs[0] == ("000", tmp_path / "000_i.data", tmp_path / "000_q.data")
+    assert pairs[1] == ("001", tmp_path / "001_i.data", tmp_path / "001_q.data")
