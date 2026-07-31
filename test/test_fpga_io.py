@@ -6,7 +6,9 @@ from radarsig.fpga_io import (
     process_channel_data,
     process_filter_coeffs,
     find_iq_pairs,
+    analyze_iq_pair,
 )
+
 
 # test_load_binary_to_array() {{{1
 def test_load_binary_to_array(tmp_path):
@@ -56,3 +58,23 @@ def test_find_iq_pairs(tmp_path):
     assert len(pairs) == 2
     assert pairs[0] == ("000", tmp_path / "000_i.data", tmp_path / "000_q.data")
     assert pairs[1] == ("001", tmp_path / "001_i.data", tmp_path / "001_q.data")
+
+# test_analyze_iq_pair() {{{1
+def test_analyze_iq_pair(tmp_path):
+    # Create minimal synthetic binary data for i and q files
+    i_file = tmp_path / "000_i.data"
+    q_file = tmp_path / "000_q.data"
+
+    # Minimal dummy binary content (coeffs at offset 0, channel data at offset 512)
+    dummy_data = np.zeros(1000, dtype=np.int32)
+    dummy_data.tofile(i_file)
+    dummy_data.tofile(q_file)
+
+    res = analyze_iq_pair(i_file, q_file, offset_dtype=512, n_pulse=14)
+
+    assert res["pair_id"] == "000"
+    for part in ["real", "imag"]:
+        assert part in res
+        for metric in ["mean", "median", "p90", "p99", "max"]:
+            assert metric in res[part]
+    assert "results" in res

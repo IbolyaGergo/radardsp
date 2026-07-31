@@ -128,3 +128,62 @@ def analyze_iq_data(
             'failing_bins': failing_bins
         }
     return results
+
+# _compute_metrics() {{{1
+def _compute_metrics(diff: np.ndarray) -> dict:
+    """ Compute robust statistical metrics for an error array. """
+    abs_diff = np.abs(diff)
+    return {
+        "mean": float(np.mean(abs_diff)),
+        "median": float(np.median(abs_diff)),
+        "p90": float(np.percentile(abs_diff, 90)),
+        "p99": float(np.percentile(abs_diff, 99)),
+        "max": float(np.max(abs_diff)),
+    }
+
+# analyze_iq_pair() {{{1
+def analyze_iq_pair(
+    i_path: Path | str,
+    q_path: Path | str,
+    offset_dtype: int = 512,
+    n_pulse: int = 14,
+    threshold: float = 1e-3,
+) -> dict:
+    """
+    Load and analyze a single pair of FPGA IQ channel files.
+
+    Parameters
+    ----------
+    i_path : Path | str
+        Path to in-phase data file.
+    q_path : Path | str
+        Path to quadrature data file.
+    offset_dtype : int, default=512
+        Offset in elements for IQ binary loading.
+    n_pulse : int, default=14
+        Number of pulses for data reshaping.
+    threshold : float, default=1e-3
+        Error threshold for identifying failing range bins in analyze_iq_data.
+
+    Returns
+    -------
+    dict
+        Dictionary containing pair_id, real metrics, imag metrics, and full results.
+    """
+    i_path, q_path = Path(i_path), Path(q_path)
+
+    x, y = load_fpga_ram_binary_to_iq(
+        i_path, q_path, offset_dtype=offset_dtype, n_pulse=n_pulse
+    )
+    b, a = load_filter_coeffs_from_binary(i_path)
+
+    results = analyze_iq_data(x, y, b, a, threshold=threshold)
+
+    pair_id = i_path.stem.removesuffix("_i")
+
+    return {
+        "pair_id": pair_id,
+        "real": _compute_metrics(results["real"]["diff"]),
+        "imag": _compute_metrics(results["imag"]["diff"]),
+        "results": results,
+    }
