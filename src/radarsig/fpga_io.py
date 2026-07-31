@@ -93,7 +93,7 @@ def analyze_iq_data(
     --------
     dict[str, dict[str, np.ndarray]]
         A dictionary containing results for 'real' and 'imag' parts, each having:
-        - 'diff': Normalized error difference array
+        - 'err_rel': Normalized error difference array
         - 'x_sum': Filtered X signal sum
         - 'y_sum': Filtered Y signal sum
         - 'ref': Reference amplitude max
@@ -115,13 +115,13 @@ def analyze_iq_data(
 
         ref = np.max(np.abs(x_sum), axis=-1, keepdims=True)
 
-        diff = np.zeros_like(y_sum, dtype=float)
-        np.divide(y_sum - x_sum, ref, out=diff, where=np.abs(ref) > 1e-3)
+        err_rel = np.zeros_like(y_sum, dtype=float)
+        np.divide(y_sum - x_sum, ref, out=err_rel, where=np.abs(ref) > 1e-3)
 
-        failing_bins = np.where(np.any(np.abs(diff) > threshold, axis=-1))[0]
+        failing_bins = np.where(np.any(np.abs(err_rel) > threshold, axis=-1))[0]
 
         results[part] = {
-            'diff': diff,
+            'err_rel': err_rel,
             'x_sum': x_sum,
             'y_sum': y_sum,
             'ref': ref,
@@ -130,15 +130,15 @@ def analyze_iq_data(
     return results
 
 # _compute_metrics() {{{1
-def _compute_metrics(diff: np.ndarray) -> dict:
+def _compute_metrics(err_rel: np.ndarray) -> dict:
     """ Compute robust statistical metrics for an error array. """
-    abs_diff = np.abs(diff)
+    abs_err_rel = np.abs(err_rel)
     return {
-        "mean": float(np.mean(abs_diff)),
-        "median": float(np.median(abs_diff)),
-        "p90": float(np.percentile(abs_diff, 90)),
-        "p99": float(np.percentile(abs_diff, 99)),
-        "max": float(np.max(abs_diff)),
+        "mean": float(np.mean(abs_err_rel)),
+        "median": float(np.median(abs_err_rel)),
+        "p90": float(np.percentile(abs_err_rel, 90)),
+        "p99": float(np.percentile(abs_err_rel, 99)),
+        "max": float(np.max(abs_err_rel)),
     }
 
 # analyze_iq_pair() {{{1
@@ -183,7 +183,7 @@ def analyze_iq_pair(
 
     return {
         "pair_id": pair_id,
-        "real": _compute_metrics(results["real"]["diff"]),
-        "imag": _compute_metrics(results["imag"]["diff"]),
+        "real": _compute_metrics(results["real"]["err_rel"]),
+        "imag": _compute_metrics(results["imag"]["err_rel"]),
         "results": results,
     }
