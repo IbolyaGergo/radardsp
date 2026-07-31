@@ -5,6 +5,7 @@ from scipy.signal import freqz
 from typing import Callable, Any
 
 
+# make_iq_plotter() {{{1
 def make_iq_plotter(data: np.ndarray, use_global_limits: bool = False) -> Callable[[plt.Axes, np.ndarray, Any], None]:
     """
     Creates a callback function for plotting IQ data with fixed global limits.
@@ -40,6 +41,7 @@ def make_iq_plotter(data: np.ndarray, use_global_limits: bool = False) -> Callab
 
     return callback
 
+# _format_freqz_axes() {{{1
 def _format_freqz_axes(ax_mag: plt.Axes, ax_phase: plt.Axes):
     """Encapsulates all styling/aesthetics."""
     ax_mag.set_title("Frequency Response Comparison")
@@ -49,6 +51,7 @@ def _format_freqz_axes(ax_mag: plt.Axes, ax_phase: plt.Axes):
     ax_phase.set_xlabel("Frequency [rad/sample]")
     ax_phase.grid(True)
 
+# plot_filter_response() {{{1
 def plot_filter_response(b, a, worN: int = 512, axes=None, label: str | None =
                          None) -> tuple["fig", "axes"]:
     if axes is None:
