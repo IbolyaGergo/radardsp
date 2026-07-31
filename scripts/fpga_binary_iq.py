@@ -1,16 +1,33 @@
-""" Script to load tmp/iq/*.data to complex np.ndarray. """
-import numpy as np
-
-from numpy.lib.stride_tricks import sliding_window_view
+import argparse
+import sys
 from pathlib import Path
-from radarsig.fpga_io import (
-    load_fpga_ram_binary_to_iq,
-    load_filter_coeffs_from_binary,
-)
+from radarsig.fpga_io import find_iq_pairs, analyze_iq_pair
 
+def main():
+    parser = argparse.ArgumentParser(description="Batch analyze FPGA IQ data.")
+    parser.add_argument("--dir", default="tmp/iq", help="Directory with IQ data")
+    args = parser.parse_args()
+
+    data_dir = Path(args.dir)
+    try:
+        pairs = find_iq_pairs(data_dir)
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    # Header
+    print(f"{'Pair':<6} | {'Real Med/P99':<15} | {'Imag Med/P99':<15}")
+    print("-" * 45)
+
+    for pair_id, i_path, q_path in pairs:
+        try:
+            res = analyze_iq_pair(i_path, q_path)
+            r = res['real']
+            i = res['imag']
+            print(f"{pair_id:<6} | {r['median']:.2e}/{r['p99']:.2e} | {i['median']:.2e}/{i['p99']:.2e}")
+        except Exception as e:
+            print(f"Error processing {pair_id}: {e}", file=sys.stderr)
+            continue
 
 if __name__ == "__main__":
-    x, y = load_fpga_ram_binary_to_iq("tmp/iq/012_i.data", "tmp/iq/012_q.data", offset_dtype=512)
-    b, a = load_filter_coeffs_from_binary("tmp/iq/012_i.data")
-
-    res = analyze_iq_data(x, y, b, a)
+    main()
