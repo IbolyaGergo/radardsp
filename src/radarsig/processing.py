@@ -12,5 +12,14 @@ def _downsample(data: np.ndarray, factor: int) -> np.ndarray:
         return data[::factor]
     return data[:, ::factor]
 
+def compute_pulse_phase_difference(iq_data: np.ndarray) -> np.ndarray:
+    """
+    Computes the phase difference between consecutive pulses for each range bin.
 
+    Parameters:
+        iq_data (np.ndarray): Complex IQ data of shape (n_range_bin, n_pulse)
 
+    Returns:
+        np.ndarray: Phase differences of shape (n_range_bin, n_pulse - 1) in radians.
+    """
+    return np.angle(iq_data[:, :-1] * np.conj(iq_data[:, 1:]))
