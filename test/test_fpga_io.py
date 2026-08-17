@@ -1,12 +1,12 @@
 import pytest
 import numpy as np
 from pathlib import Path
+from radarsig.fpga_analysis import analyze_iq_pair
 from radarsig.fpga_io import (
     load_binary_to_array,
     process_channel_data,
     process_filter_coeffs,
     find_iq_pairs,
-    analyze_iq_pair,
 )
 
 

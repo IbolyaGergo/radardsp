@@ -2,7 +2,8 @@
 import argparse
 import sys
 from pathlib import Path
-from radarsig.fpga_io import find_iq_pairs, analyze_iq_pair
+from radarsig.fpga_io import find_iq_pairs
+from radarsig.fpga_analysis import analyze_iq_pair
 
 def main():
     parser = argparse.ArgumentParser(description="Batch analyze FPGA IQ data.")
