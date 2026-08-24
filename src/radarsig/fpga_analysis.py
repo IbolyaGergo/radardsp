@@ -7,6 +7,7 @@ from radarsig.fpga_io import (
     load_fpga_ram_binary_to_iq,
     load_filter_coeffs_from_binary,
 )
+from scipy.signal import freqz
 
 
 # analyze_iq_data() {{{1
@@ -131,3 +132,125 @@ def analyze_iq_pair(
         "imag": _compute_metrics(results["imag"]["err_rel"]),
         "results": results,
     }
+
+# compute_median_ratio_spectrum() {{{1
+def compute_median_ratio_spectrum(
+    x: np.ndarray,
+    y: np.ndarray,
+    b: np.ndarray,
+    a: np.ndarray,
+    n_bins: int = 3165,
+    fft_len: int = 256
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Compute empirical median ratio spectrum (|Y|/|X| in dB) across range bins
+    and compare with theoretical freqz response.
+    """
+    n_bins = min(n_bins, x.shape[0])
+    x_sub = x[:n_bins, :]
+    y_sub = y[:n_bins, :]
+
+    window = np.hamming(x.shape[1])
+    half_len = fft_len // 2 + 1
+    freqs = np.linspace(0, np.pi, half_len)
+
+    ratio_db_list = []
+    for k in range(n_bins):
+        x_win = x_sub[k] * window
+        y_win = y_sub[k] * window
+
+        X_fft = np.fft.fft(x_win, n=fft_len)[:half_len]
+        Y_fft = np.fft.fft(y_win, n=fft_len)[:half_len]
+
+        with np.errstate(divide='ignore', invalid='ignore'):
+            ratio_db = 20 * np.log10(np.abs(Y_fft)) - 20 * np.log10(np.abs(X_fft))
+        ratio_db_list.append(ratio_db)
+
+    median_ratio_db = np.median(np.array(ratio_db_list), axis=0)
+
+    w, h = freqz(b, a, worN=half_len)
+    h_db = 20 * np.log10(np.abs(h))
+
+    return freqs, h_db, median_ratio_db
+
+# compute_csd_spectrum() {{{1
+def compute_csd_spectrum(
+    x: np.ndarray,
+    y: np.ndarray,
+    b: np.ndarray,
+    a: np.ndarray,
+    n_bins: int = 3165,
+    fft_len: int = 256
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Compute empirical CSD spectrum (S_yx / S_xx in dB) across range bins
+    and compare with theoretical freqz response.
+    """
+    n_bins = min(n_bins, x.shape[0])
+    x_sub = x[:n_bins, :]
+    y_sub = y[:n_bins, :]
+
+    window = np.hamming(x.shape[1])
+    half_len = fft_len // 2 + 1
+    freqs = np.linspace(0, np.pi, half_len)
+
+    num_sum = np.zeros(half_len, dtype=complex)
+    den_sum = np.zeros(half_len, dtype=complex)
+
+    for k in range(n_bins):
+        x_win = x_sub[k] * window
+        y_win = y_sub[k] * window
+
+        X_fft = np.fft.fft(x_win, n=fft_len)[:half_len]
+        Y_fft = np.fft.fft(y_win, n=fft_len)[:half_len]
+
+        num_sum += Y_fft * np.conj(X_fft)
+        den_sum += X_fft * np.conj(X_fft)
+
+    H_csd = num_sum / den_sum
+    h_csd_db = 20 * np.log10(np.abs(H_csd))
+
+    w, h = freqz(b, a, worN=half_len)
+    h_db = 20 * np.log10(np.abs(h))
+
+    return freqs, h_db, h_csd_db
+
+# compute_coherence() {{{1
+def compute_coherence(
+    x: np.ndarray,
+    y: np.ndarray,
+    n_bins: int = 3165,
+    fft_len: int = 256
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Compute Magnitude-Squared Coherence (gamma_xy^2) between x and y across range bins.
+    """
+    n_bins = min(n_bins, x.shape[0])
+    x_sub = x[:n_bins, :]
+    y_sub = y[:n_bins, :]
+
+    window = np.hamming(x.shape[1])
+    half_len = fft_len // 2 + 1
+    freqs = np.linspace(0, np.pi, half_len)
+
+    num_sum = np.zeros(half_len, dtype=complex)
+    den_x_sum = np.zeros(half_len, dtype=float)
+    den_y_sum = np.zeros(half_len, dtype=float)
+
+    for k in range(n_bins):
+        x_win = x_sub[k] * window
+        y_win = y_sub[k] * window
+
+        X_fft = np.fft.fft(x_win, n=fft_len)[:half_len]
+        Y_fft = np.fft.fft(y_win, n=fft_len)[:half_len]
+
+        num_sum += Y_fft * np.conj(X_fft)
+        den_x_sum += np.real(X_fft * np.conj(X_fft))
+        den_y_sum += np.real(Y_fft * np.conj(Y_fft))
+
+    with np.errstate(divide='ignore', invalid='ignore'):
+        coherence = np.abs(num_sum) ** 2 / (den_x_sum * den_y_sum)
+        coherence = np.nan_to_num(coherence, nan=0.0)
+
+    return freqs, coherence
+
