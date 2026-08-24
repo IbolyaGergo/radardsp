@@ -10,20 +10,17 @@ from radarsig.fpga_analysis import compute_median_ratio_spectrum, compute_csd_sp
 ANALYSIS_METHODS = {
     "median": {
         "func": compute_median_ratio_spectrum,
-        "ylabel": "Magnitude [dB]",
         "title_prefix": "IIR Filter Frequency Response (Median)",
         "filename_prefix": "filter_spectrum_median",
     },
     "csd": {
         "func": compute_csd_spectrum,
-        "ylabel": "Magnitude [dB]",
         "title_prefix": "IIR Filter Frequency Response (CSD)",
         "filename_prefix": "filter_spectrum_csd",
     },
     "coherence": {
         "func": compute_coherence,
-        "ylabel": "Coherence",
-        "title_prefix": "Magnitude-Squared Coherence",
+        "title_prefix": "Magnitude-Squared Coherence & Theoretical Response",
         "filename_prefix": "filter_spectrum_coherence",
     },
 }
@@ -31,23 +28,35 @@ ANALYSIS_METHODS = {
 def plot_result(freqs, result_data, method: str, pair_id: str, out_dir: Path):
     config = ANALYSIS_METHODS[method]
     plt.figure(figsize=(8, 5))
+    ax1 = plt.gca()
 
     if method in ("median", "csd"):
         h_db, emp_db = result_data
-        plt.plot(freqs, h_db, label="Theoretical ($|H|$) - freqz", color="black", linewidth=2, linestyle="--")
+        ax1.plot(freqs, h_db, label="Theoretical ($|H|$) - freqz", color="black", linewidth=2, linestyle="--")
         label = "Empirical Median ($|Y|/|X|$)" if method == "median" else "Empirical CSD ($S_{yx}/S_{xx}$)"
         color = "blue" if method == "median" else "red"
-        plt.plot(freqs, emp_db, label=label, color=color, alpha=0.8)
+        ax1.plot(freqs, emp_db, label=label, color=color, alpha=0.8)
+        ax1.set_ylabel("Magnitude [dB]")
+        ax1.legend(loc="upper right")
     elif method == "coherence":
-        coherence = result_data
-        plt.plot(freqs, coherence, label="Magnitude-Squared Coherence ($\gamma_{xy}^2$)", color="green", linewidth=2)
-        plt.ylim(-0.05, 1.05)
+        h_db, coherence = result_data
+        line1 = ax1.plot(freqs, h_db, label="Theoretical ($|H|$) - freqz", color="black", linewidth=2, linestyle="--")
+        ax1.set_ylabel("Magnitude [dB]", color="black")
+        ax1.tick_params(axis='y', labelcolor="black")
 
-    plt.title(f"{config['title_prefix']} - Pair {pair_id}")
-    plt.xlabel("Digital Frequency ($\omega$) [rad/sample]")
-    plt.ylabel(config["ylabel"])
-    plt.grid(True, which="both", linestyle=":", alpha=0.7)
-    plt.legend()
+        ax2 = ax1.twinx()
+        line2 = ax2.plot(freqs, coherence, label="Coherence ($\gamma_{xy}^2$)", color="green", linewidth=2)
+        ax2.set_ylabel("Coherence", color="green")
+        ax2.tick_params(axis='y', labelcolor="green")
+        ax2.set_ylim(-0.05, 1.05)
+
+        lines = line1 + line2
+        labels = [l.get_label() for l in lines]
+        ax1.legend(lines, labels, loc="upper right")
+
+    ax1.set_title(f"{config['title_prefix']} - Pair {pair_id}")
+    ax1.set_xlabel("Digital Frequency ($\omega$) [rad/sample]")
+    ax1.grid(True, which="both", linestyle=":", alpha=0.7)
     plt.tight_layout()
 
     plot_path = out_dir / f"{config['filename_prefix']}_{pair_id}.png"
@@ -57,7 +66,7 @@ def plot_result(freqs, result_data, method: str, pair_id: str, out_dir: Path):
 
 def main():
     parser = argparse.ArgumentParser(description="Batch analyze IIR filter spectrum.")
-    parser.add_argument("--dir", default="tmp/iq", help="Results directory")
+    parser.add_argument("--dir", default="tmp/iq", help="Directory with IQ data")
     parser.add_argument("--method", choices=list(ANALYSIS_METHODS.keys()), default="median", help="Analysis method")
     args = parser.parse_args()
 
@@ -87,15 +96,10 @@ def main():
             print(f"  Error loading {pair_id}: {e}")
             continue
 
-        if args.method in ("median", "csd"):
-            freqs, h_db, emp_db = method_meta["func"](x, y, b, a)
-            plot_result(freqs, (h_db, emp_db), args.method, pair_id, out_dir)
-        elif args.method == "coherence":
-            freqs, coherence = method_meta["func"](x, y)
-            plot_result(freqs, coherence, args.method, pair_id, out_dir)
+        freqs, data1, data2 = method_meta["func"](x, y, b, a)
+        plot_result(freqs, (data1, data2), args.method, pair_id, out_dir)
 
     print("Batch analysis complete.")
 
 if __name__ == "__main__":
     main()
-

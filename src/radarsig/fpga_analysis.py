@@ -219,11 +219,14 @@ def compute_csd_spectrum(
 def compute_coherence(
     x: np.ndarray,
     y: np.ndarray,
+    b: np.ndarray,
+    a: np.ndarray,
     n_bins: int = 3165,
     fft_len: int = 256
-) -> tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
-    Compute Magnitude-Squared Coherence (gamma_xy^2) between x and y across range bins.
+    Compute Magnitude-Squared Coherence (gamma_xy^2) between x and y across range bins
+    along with theoretical freqz response.
     """
     n_bins = min(n_bins, x.shape[0])
     x_sub = x[:n_bins, :]
@@ -252,5 +255,8 @@ def compute_coherence(
         coherence = np.abs(num_sum) ** 2 / (den_x_sum * den_y_sum)
         coherence = np.nan_to_num(coherence, nan=0.0)
 
-    return freqs, coherence
+    w, h = freqz(b, a, worN=half_len)
+    h_db = 20 * np.log10(np.abs(h))
+
+    return freqs, h_db, coherence
 
