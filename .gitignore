@@ -2,3 +2,4 @@ data/
 envs/
 tmp/
 **/__pycache__/
+results/
