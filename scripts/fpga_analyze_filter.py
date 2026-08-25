@@ -7,7 +7,7 @@ from radarsig.fpga_analysis import analyze_iq_pair
 
 def main():
     parser = argparse.ArgumentParser(description="Batch analyze FPGA IQ data.")
-    parser.add_argument("--dir", default="tmp/iq", help="Directory with IQ data")
+    parser.add_argument("--dir", default="data/raw/fpga/iq", help="Directory with IQ data")
     args = parser.parse_args()
 
     data_dir = Path(args.dir)

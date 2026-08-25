@@ -78,7 +78,7 @@ def process_pair(pair_id, i_path, q_path, method, out_dir):
 
 def main():
     parser = argparse.ArgumentParser(description="Analyze IIR filter spectrum.")
-    parser.add_argument("--dir", default="tmp/iq", help="Directory with IQ data")
+    parser.add_argument("--dir", default="data/raw/fpga/iq", help="Directory with IQ data")
     parser.add_argument("--method", choices=list(ANALYSIS_METHODS.keys()), default="median", help="Analysis method")
     parser.add_argument("--pair", default=None, help="Specific pair ID to process (e.g. 004)")
     parser.add_argument("--out-dir", default=None, help="Output directory for plots")

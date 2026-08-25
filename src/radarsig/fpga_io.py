@@ -1,4 +1,4 @@
-""" Functions to load tmp/iq/*.data to complex np.ndarray. """
+""" Functions to load data/raw/fpga/iq/*.data to complex np.ndarray. """
 import numpy as np
 
 from pathlib import Path

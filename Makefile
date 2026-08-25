@@ -39,7 +39,7 @@ env: ## Create/update the conda environment from environment.yaml.
 	fi
 
 # --- FPGA Analysis ---
-IQ_DIR := tmp/iq
+IQ_DIR := data/raw/fpga/iq
 IQ_I_FILES := $(shell find $(IQ_DIR) -name "*_i.data")
 PAIR_IDS := $(notdir $(basename $(patsubst %_i.data,%,$(IQ_I_FILES))))
 
