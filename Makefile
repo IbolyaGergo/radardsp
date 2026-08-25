@@ -38,6 +38,39 @@ env: ## Create/update the conda environment from environment.yaml.
 		conda env create -f environment.yaml --prefix $(ENV_PATH); \
 	fi
 
+# --- FPGA Analysis ---
+IQ_DIR := tmp/iq
+IQ_I_FILES := $(shell find $(IQ_DIR) -name "*_i.data")
+PAIR_IDS := $(notdir $(basename $(patsubst %_i.data,%,$(IQ_I_FILES))))
+
+MEDIAN_PLOTS := $(patsubst %, results/fpga_spectrum/median/filter_spectrum_median_%.png, $(PAIR_IDS))
+CSD_PLOTS := $(patsubst %, results/fpga_spectrum/csd/filter_spectrum_csd_%.png, $(PAIR_IDS))
+COHERENCE_PLOTS := $(patsubst %, results/fpga_spectrum/coherence/filter_spectrum_coherence_%.png, $(PAIR_IDS))
+
+results/fpga_spectrum/median/filter_spectrum_median_%.png: $(IQ_DIR)/%_i.data $(IQ_DIR)/%_q.data scripts/fpga_analyze_spectrum.py
+	@mkdir -p $(dir $@)
+	$(PYTHON) scripts/fpga_analyze_spectrum.py --method median --pair $* --out-dir $(dir $@)
+
+results/fpga_spectrum/csd/filter_spectrum_csd_%.png: $(IQ_DIR)/%_i.data $(IQ_DIR)/%_q.data scripts/fpga_analyze_spectrum.py
+	@mkdir -p $(dir $@)
+	$(PYTHON) scripts/fpga_analyze_spectrum.py --method csd --pair $* --out-dir $(dir $@)
+
+results/fpga_spectrum/coherence/filter_spectrum_coherence_%.png: $(IQ_DIR)/%_i.data $(IQ_DIR)/%_q.data scripts/fpga_analyze_spectrum.py
+	@mkdir -p $(dir $@)
+	$(PYTHON) scripts/fpga_analyze_spectrum.py --method coherence --pair $* --out-dir $(dir $@)
+
+.PHONY: fpga-analyze-median
+fpga-analyze-median: $(MEDIAN_PLOTS) ## Run FPGA median IIR filter spectrum analysis
+
+.PHONY: fpga-analyze-csd
+fpga-analyze-csd: $(CSD_PLOTS) ## Run FPGA CSD IIR filter spectrum analysis
+
+.PHONY: fpga-analyze-coherence
+fpga-analyze-coherence: $(COHERENCE_PLOTS) ## Run FPGA coherence analysis
+
+.PHONY: fpga-analyze-all
+fpga-analyze-all: fpga-analyze-median fpga-analyze-csd fpga-analyze-coherence ## Run all FPGA spectral analyses
+
 # --- Tags ---
 .PHONY: tags
 tags: ## Create tags using Universal Ctags
@@ -48,6 +81,7 @@ tags: ## Create tags using Universal Ctags
 vars: ## Print variables for debug
 	$(info RAW_FILES is $(RAW_FILES))
 	$(info CONVERTED_FILES is $(CONVERTED_FILES))
+	$(info IQ_I_FILES is $(IQ_I_FILES))
 
 # --- Help ---
 .PHONY: help
@@ -57,4 +91,5 @@ help: ## Show this help
 # --- Clean ---
 .PHONY: clean
 clean: ## Remove all created files
-	@rm -rf $(CONVERTED_DATA_DIR)
+	@rm -rf $(CONVERTED_DATA_DIR) results
+
