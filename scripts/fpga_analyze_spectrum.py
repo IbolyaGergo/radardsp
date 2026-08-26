@@ -34,13 +34,14 @@ ANALYSIS_METHODS = {
 }
 
 
-def plot_result(freqs, result_data, method: str, pair_id: str, out_dir: Path):
+def plot_result(results_list, method: str, pair_id: str, out_dir: Path):
     config = ANALYSIS_METHODS[method]
-    plt.figure(figsize=(8, 5))
+    plt.figure(figsize=(9, 5))
     ax1 = plt.gca()
 
     if method in ("median", "csd"):
-        h_db, emp_db = result_data
+        # Plot theoretical results
+        _, freqs, h_db, _ = results_list[0]
         ax1.plot(
             freqs,
             h_db,
@@ -48,18 +49,20 @@ def plot_result(freqs, result_data, method: str, pair_id: str, out_dir: Path):
             color="black",
             linewidth=2,
             linestyle="--",
+            zorder=5,
         )
-        label = (
-            "Empirical Median ($|Y|/|X|$)"
-            if method == "median"
-            else "Empirical CSD ($S_{yx}/S_{xx}$)"
-        )
-        color = "blue" if method == "median" else "red"
-        ax1.plot(freqs, emp_db, label=label, color=color, alpha=0.8)
+
+        # Plot empirical curves for each window
+        colors = plt.cm.tab10(np.linspace(0, 1, len(results_list)))
+        for (win_name, _, _, emp_db), color in zip(results_list, colors):
+            label_str = f"Empirical ({win_name})"
+            ax1.plot(freqs, emp_db, label=label_str, color=color, alpha=0.8)
+
         ax1.set_ylabel("Magnitude [dB]")
         ax1.legend(loc="upper right")
     elif method == "coherence":
-        h_db, coherence = result_data
+        # For coherence, take the first (or only) window result
+        _, freqs, h_db, coherence, _ = results_list[0]
         line1 = ax1.plot(
             freqs,
             h_db,
@@ -95,7 +98,7 @@ def plot_result(freqs, result_data, method: str, pair_id: str, out_dir: Path):
     print(f"  Saved plot to {plot_path}")
 
 
-def process_pair(pair_id, i_path, q_path, method, window_name, out_dir):
+def process_pair(pair_id, i_path, q_path, method, window_names, out_dir):
     try:
         x, y = load_fpga_ram_binary_to_iq(i_path, q_path, offset_dtype=512, n_pulse=14)
         b, a = load_filter_coeffs_from_binary(i_path)
@@ -104,9 +107,17 @@ def process_pair(pair_id, i_path, q_path, method, window_name, out_dir):
         return
 
     method_meta = ANALYSIS_METHODS[method]
-    window_arr = get_window(window_name, x.shape[1])
-    freqs, data1, data2 = method_meta["func"](x, y, b, a, window=window_arr)
-    plot_result(freqs, (data1, data2), method, pair_id, out_dir)
+
+    # Store results for each window: list of (window_name, freqs, h_db, emp_db)
+    results_to_plot = []
+
+    for window_name in window_names:
+        window_arr = get_window(window_name, x.shape[1])
+        freqs, h_db, emp_db = method_meta["func"](x, y, b, a, window=window_arr)
+
+        results_to_plot.append((window_name, freqs, h_db, emp_db))
+
+    plot_result(results_to_plot, method, pair_id, out_dir)
 
 
 def main():
@@ -119,8 +130,9 @@ def main():
     parser.add_argument("--out-dir", default=None, help="Output directory for plots")
     parser.add_argument(
         "--window",
-        default="hamming",
-        help="Window function name (e.g., hamming, hann, boxcar, blackman) for median method",
+        nargs="+",
+        default=["hamming"],
+        help="Window function name(s) (e.g., hamming hann boxcar blackman)",
     )
 
     args = parser.parse_args()
