@@ -46,7 +46,7 @@ def plot_magnitude_spectrum(ax, results_list, pair_id):
         )
 
     ax.set_ylabel("Magnitude [dB]")
-    ax.legend(loc="upper right")
+    ax.legend(loc="lower right")
 
 
 def plot_coherence_spectrum(ax, results_list, pair_id):
@@ -84,7 +84,7 @@ def plot_coherence_spectrum(ax, results_list, pair_id):
 
     lines = line1 + coherence_lines
     labels = [l.get_label() for l in lines]
-    ax.legend(lines, labels, loc="upper right")
+    ax.legend(lines, labels, loc="lower right")
 
 
 ANALYSIS_METHODS = {
