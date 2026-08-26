@@ -15,21 +15,64 @@ from radarsig.fpga_analysis import (
     compute_coherence,
 )
 
+
+def plot_magnitude_spectrum(ax, results_list, pair_id):
+    """Plot theoretical response and one or more empirical magnitude curves."""
+    # Plot theoretical response once (from the first result)
+    _, freqs, h_db, _ = results_list[0]
+    ax.plot(
+        freqs, h_db, label="Theoretical ($|H|$) - freqz", color="black", linewidth=2, linestyle="--"
+    )
+
+    # Overlay empirical curves for each window
+    colors = plt.cm.tab10(np.linspace(0, 1, len(results_list)))
+    for (win_name, _, _, emp_db), color in zip(results_list, colors):
+        ax.plot(freqs, emp_db, label=f"Empirical ({win_name})", color=color, alpha=0.8)
+
+    ax.set_ylabel("Magnitude [dB]")
+    ax.legend(loc="upper right")
+
+
+def plot_coherence_spectrum(ax, results_list, pair_id):
+    """Plot magnitude response with dual-axis coherence."""
+    _, freqs, h_db, coherence = results_list[0]
+    line1 = ax.plot(
+        freqs, h_db, label="Theoretical ($|H|$) - freqz", color="black", linewidth=2, linestyle="--"
+    )
+    ax.set_ylabel("Magnitude [dB]", color="black")
+    ax.tick_params(axis="y", labelcolor="black")
+
+    ax2 = ax.twinx()
+    line2 = ax2.plot(
+        freqs, coherence, label=r"Coherence ($\gamma_{xy}^2$)", color="green", linewidth=2
+    )
+    ax2.set_ylabel("Coherence", color="green")
+    ax2.tick_params(axis="y", labelcolor="green")
+    ax2.set_ylim(-0.05, 1.05)
+
+    lines = line1 + line2
+    labels = [l.get_label() for l in lines]
+    ax.legend(lines, labels, loc="upper right")
+
+
 ANALYSIS_METHODS = {
     "median": {
         "func": compute_median_ratio_spectrum,
         "title_prefix": "IIR Filter Frequency Response (Median)",
         "filename_prefix": "filter_spectrum_median",
+        "plotter": plot_magnitude_spectrum,
     },
     "csd": {
         "func": compute_csd_spectrum,
         "title_prefix": "IIR Filter Frequency Response (CSD)",
         "filename_prefix": "filter_spectrum_csd",
+        "plotter": plot_magnitude_spectrum,
     },
     "coherence": {
         "func": compute_coherence,
         "title_prefix": "Magnitude-Squared Coherence & Theoretical Response",
         "filename_prefix": "filter_spectrum_coherence",
+        "plotter": plot_coherence_spectrum,
     },
 }
 
@@ -37,58 +80,14 @@ ANALYSIS_METHODS = {
 def plot_result(results_list, method: str, pair_id: str, out_dir: Path):
     config = ANALYSIS_METHODS[method]
     plt.figure(figsize=(9, 5))
-    ax1 = plt.gca()
+    ax = plt.gca()
 
-    if method in ("median", "csd"):
-        # Plot theoretical results
-        _, freqs, h_db, _ = results_list[0]
-        ax1.plot(
-            freqs,
-            h_db,
-            label="Theoretical ($|H|$) - freqz",
-            color="black",
-            linewidth=2,
-            linestyle="--",
-            zorder=5,
-        )
+    # Dispatch to the specific plotter function
+    config["plotter"](ax, results_list, pair_id)
 
-        # Plot empirical curves for each window
-        colors = plt.cm.tab10(np.linspace(0, 1, len(results_list)))
-        for (win_name, _, _, emp_db), color in zip(results_list, colors):
-            label_str = f"Empirical ({win_name})"
-            ax1.plot(freqs, emp_db, label=label_str, color=color, alpha=0.8)
-
-        ax1.set_ylabel("Magnitude [dB]")
-        ax1.legend(loc="upper right")
-    elif method == "coherence":
-        # For coherence, take the first (or only) window result
-        _, freqs, h_db, coherence, _ = results_list[0]
-        line1 = ax1.plot(
-            freqs,
-            h_db,
-            label="Theoretical ($|H|$) - freqz",
-            color="black",
-            linewidth=2,
-            linestyle="--",
-        )
-        ax1.set_ylabel("Magnitude [dB]", color="black")
-        ax1.tick_params(axis="y", labelcolor="black")
-
-        ax2 = ax1.twinx()
-        line2 = ax2.plot(
-            freqs, coherence, label=r"Coherence ($\gamma_{xy}^2$)", color="green", linewidth=2
-        )
-        ax2.set_ylabel("Coherence", color="green")
-        ax2.tick_params(axis="y", labelcolor="green")
-        ax2.set_ylim(-0.05, 1.05)
-
-        lines = line1 + line2
-        labels = [l.get_label() for l in lines]
-        ax1.legend(lines, labels, loc="upper right")
-
-    ax1.set_title(f"{config['title_prefix']} - Pair {pair_id}")
-    ax1.set_xlabel(r"Digital Frequency ($\omega$) [rad/sample]")
-    ax1.grid(True, which="both", linestyle=":", alpha=0.7)
+    ax.set_title(f"{config['title_prefix']} - Pair {pair_id}")
+    ax.set_xlabel(r"Digital Frequency ($\omega$) [rad/sample]")
+    ax.grid(True, which="both", linestyle=":", alpha=0.7)
     plt.tight_layout()
 
     out_dir.mkdir(parents=True, exist_ok=True)
