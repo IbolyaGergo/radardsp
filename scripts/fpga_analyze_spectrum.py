@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+from dataclasses import dataclass
 import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
@@ -16,18 +17,33 @@ from radarsig.fpga_analysis import (
 )
 
 
+@dataclass
+class FPGASpectrumResult:
+    window_name: str
+    freqs: np.ndarray
+    h_db: np.ndarray
+    emp_data: np.ndarray
+
+
 def plot_magnitude_spectrum(ax, results_list, pair_id):
     """Plot theoretical response and one or more empirical magnitude curves."""
     # Plot theoretical response once (from the first result)
-    _, freqs, h_db, _ = results_list[0]
+    base = results_list[0]
     ax.plot(
-        freqs, h_db, label="Theoretical ($|H|$) - freqz", color="black", linewidth=2, linestyle="--"
+        base.freqs,
+        base.h_db,
+        label="Theoretical ($|H|$) - freqz",
+        color="black",
+        linewidth=2,
+        linestyle="--",
     )
 
     # Overlay empirical curves for each window
     colors = plt.cm.tab10(np.linspace(0, 1, len(results_list)))
-    for (win_name, _, _, emp_db), color in zip(results_list, colors):
-        ax.plot(freqs, emp_db, label=f"Empirical ({win_name})", color=color, alpha=0.8)
+    for res, color in zip(results_list, colors):
+        ax.plot(
+            res.freqs, res.emp_data, label=f"Empirical ({res.window_name})", color=color, alpha=0.8
+        )
 
     ax.set_ylabel("Magnitude [dB]")
     ax.legend(loc="upper right")
@@ -35,16 +51,21 @@ def plot_magnitude_spectrum(ax, results_list, pair_id):
 
 def plot_coherence_spectrum(ax, results_list, pair_id):
     """Plot magnitude response with dual-axis coherence."""
-    _, freqs, h_db, coherence = results_list[0]
+    base = results_list[0]
     line1 = ax.plot(
-        freqs, h_db, label="Theoretical ($|H|$) - freqz", color="black", linewidth=2, linestyle="--"
+        base.freqs,
+        base.h_db,
+        label="Theoretical ($|H|$) - freqz",
+        color="black",
+        linewidth=2,
+        linestyle="--",
     )
     ax.set_ylabel("Magnitude [dB]", color="black")
     ax.tick_params(axis="y", labelcolor="black")
 
     ax2 = ax.twinx()
     line2 = ax2.plot(
-        freqs, coherence, label=r"Coherence ($\gamma_{xy}^2$)", color="green", linewidth=2
+        base.freqs, base.emp_data, label=r"Coherence ($\gamma_{xy}^2$)", color="green", linewidth=2
     )
     ax2.set_ylabel("Coherence", color="green")
     ax2.tick_params(axis="y", labelcolor="green")
@@ -107,14 +128,21 @@ def process_pair(pair_id, i_path, q_path, method, window_names, out_dir):
 
     method_meta = ANALYSIS_METHODS[method]
 
-    # Store results for each window: list of (window_name, freqs, h_db, emp_db)
+    # Store results for each window: list of (window_name, freqs, h_db, emp_data)
     results_to_plot = []
 
     for window_name in window_names:
         window_arr = get_window(window_name, x.shape[1])
-        freqs, h_db, emp_db = method_meta["func"](x, y, b, a, window=window_arr)
+        freqs, h_db, emp_data = method_meta["func"](x, y, b, a, window=window_arr)
 
-        results_to_plot.append((window_name, freqs, h_db, emp_db))
+        results_to_plot.append(
+            FPGASpectrumResult(
+                window_name=window_name,
+                freqs=freqs,
+                h_db=h_db,
+                emp_data=emp_data,
+            )
+        )
 
     plot_result(results_to_plot, method, pair_id, out_dir)
 
