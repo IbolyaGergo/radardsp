@@ -139,6 +139,7 @@ def compute_median_ratio_spectrum(
     a: np.ndarray,
     n_bins: int = 3165,
     fft_len: int = 256,
+    window: np.ndarray | None = None,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Compute empirical median ratio spectrum (|Y|/|X| in dB) across range bins
@@ -148,14 +149,14 @@ def compute_median_ratio_spectrum(
     x_sub = x[:n_bins, :]
     y_sub = y[:n_bins, :]
 
-    window = np.hamming(x.shape[1])
+    window_arr = np.hamming(x.shape[1]) if window is None else window
     half_len = fft_len // 2 + 1
     freqs = np.linspace(0, np.pi, half_len)
 
     ratio_db_list = []
     for k in range(n_bins):
-        x_win = x_sub[k] * window
-        y_win = y_sub[k] * window
+        x_win = x_sub[k] * window_arr
+        y_win = y_sub[k] * window_arr
 
         X_fft = np.fft.fft(x_win, n=fft_len)[:half_len]
         Y_fft = np.fft.fft(y_win, n=fft_len)[:half_len]
@@ -181,6 +182,7 @@ def compute_csd_spectrum(
     a: np.ndarray,
     n_bins: int = 3165,
     fft_len: int = 256,
+    window: np.ndarray | None = None,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Compute empirical CSD spectrum (S_yx / S_xx in dB) across range bins
@@ -226,6 +228,7 @@ def compute_coherence(
     a: np.ndarray,
     n_bins: int = 3165,
     fft_len: int = 256,
+    window: np.ndarray | None = None,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Compute Magnitude-Squared Coherence (gamma_xy^2) between x and y across range bins

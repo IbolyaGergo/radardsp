@@ -3,6 +3,7 @@ import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
+from scipy.signal import get_window
 from radarsig.fpga_io import (
     load_fpga_ram_binary_to_iq,
     load_filter_coeffs_from_binary,
@@ -72,7 +73,7 @@ def plot_result(freqs, result_data, method: str, pair_id: str, out_dir: Path):
 
         ax2 = ax1.twinx()
         line2 = ax2.plot(
-            freqs, coherence, label="Coherence ($\gamma_{xy}^2$)", color="green", linewidth=2
+            freqs, coherence, label=r"Coherence ($\gamma_{xy}^2$)", color="green", linewidth=2
         )
         ax2.set_ylabel("Coherence", color="green")
         ax2.tick_params(axis="y", labelcolor="green")
@@ -83,7 +84,7 @@ def plot_result(freqs, result_data, method: str, pair_id: str, out_dir: Path):
         ax1.legend(lines, labels, loc="upper right")
 
     ax1.set_title(f"{config['title_prefix']} - Pair {pair_id}")
-    ax1.set_xlabel("Digital Frequency ($\omega$) [rad/sample]")
+    ax1.set_xlabel(r"Digital Frequency ($\omega$) [rad/sample]")
     ax1.grid(True, which="both", linestyle=":", alpha=0.7)
     plt.tight_layout()
 
@@ -94,7 +95,7 @@ def plot_result(freqs, result_data, method: str, pair_id: str, out_dir: Path):
     print(f"  Saved plot to {plot_path}")
 
 
-def process_pair(pair_id, i_path, q_path, method, out_dir):
+def process_pair(pair_id, i_path, q_path, method, window_name, out_dir):
     try:
         x, y = load_fpga_ram_binary_to_iq(i_path, q_path, offset_dtype=512, n_pulse=14)
         b, a = load_filter_coeffs_from_binary(i_path)
@@ -103,7 +104,8 @@ def process_pair(pair_id, i_path, q_path, method, out_dir):
         return
 
     method_meta = ANALYSIS_METHODS[method]
-    freqs, data1, data2 = method_meta["func"](x, y, b, a)
+    window_arr = get_window(window_name, x.shape[1])
+    freqs, data1, data2 = method_meta["func"](x, y, b, a, window=window_arr)
     plot_result(freqs, (data1, data2), method, pair_id, out_dir)
 
 
@@ -115,6 +117,12 @@ def main():
     )
     parser.add_argument("--pair", default=None, help="Specific pair ID to process (e.g. 004)")
     parser.add_argument("--out-dir", default=None, help="Output directory for plots")
+    parser.add_argument(
+        "--window",
+        default="hamming",
+        help="Window function name (e.g., hamming, hann, boxcar, blackman) for median method",
+    )
+
     args = parser.parse_args()
 
     data_dir = Path(args.dir)
@@ -127,7 +135,7 @@ def main():
             print(f"Error: Pair {args.pair} files not found in {data_dir}")
             return
         print(f"Processing single pair: {args.pair} (method: {args.method})...")
-        process_pair(args.pair, i_path, q_path, args.method, out_dir)
+        process_pair(args.pair, i_path, q_path, args.method, args.window, out_dir)
     else:
         try:
             pairs = find_iq_pairs(data_dir)
