@@ -167,7 +167,8 @@ def compute_median_ratio_spectrum(
     median_ratio_db = np.median(np.array(ratio_db_list), axis=0)
 
     w, h = freqz(b, a, worN=half_len)
-    h_db = 20 * np.log10(np.abs(h))
+    with np.errstate(divide="ignore", invalid="ignore"):
+        h_db = 20 * np.log10(np.abs(h))
 
     return freqs, h_db, median_ratio_db
 
@@ -207,10 +208,12 @@ def compute_csd_spectrum(
         den_sum += X_fft * np.conj(X_fft)
 
     H_csd = num_sum / den_sum
-    h_csd_db = 20 * np.log10(np.abs(H_csd))
+    with np.errstate(divide="ignore", invalid="ignore"):
+        h_csd_db = 20 * np.log10(np.abs(H_csd))
 
     w, h = freqz(b, a, worN=half_len)
-    h_db = 20 * np.log10(np.abs(h))
+    with np.errstate(divide="ignore", invalid="ignore"):
+        h_db = 20 * np.log10(np.abs(h))
 
     return freqs, h_db, h_csd_db
 
@@ -256,6 +259,7 @@ def compute_coherence(
         coherence = np.nan_to_num(coherence, nan=0.0)
 
     w, h = freqz(b, a, worN=half_len)
-    h_db = 20 * np.log10(np.abs(h))
+    with np.errstate(divide="ignore", invalid="ignore"):
+        h_db = 20 * np.log10(np.abs(h))
 
     return freqs, h_db, coherence
