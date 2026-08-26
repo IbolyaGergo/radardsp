@@ -47,17 +47,20 @@ MEDIAN_PLOTS := $(patsubst %, results/fpga_spectrum/median/filter_spectrum_media
 CSD_PLOTS := $(patsubst %, results/fpga_spectrum/csd/filter_spectrum_csd_%.png, $(PAIR_IDS))
 COHERENCE_PLOTS := $(patsubst %, results/fpga_spectrum/coherence/filter_spectrum_coherence_%.png, $(PAIR_IDS))
 
+WINDOW ?= hamming
+FPGA_FLAGS := --window $(WINDOW)
+
 results/fpga_spectrum/median/filter_spectrum_median_%.png: $(IQ_DIR)/%_i.data $(IQ_DIR)/%_q.data scripts/fpga_analyze_spectrum.py
 	@mkdir -p $(dir $@)
-	$(PYTHON) scripts/fpga_analyze_spectrum.py --method median --pair $* --out-dir $(dir $@)
+	$(PYTHON) scripts/fpga_analyze_spectrum.py --method median --pair $* --out-dir $(dir $@) $(FPGA_FLAGS)
 
 results/fpga_spectrum/csd/filter_spectrum_csd_%.png: $(IQ_DIR)/%_i.data $(IQ_DIR)/%_q.data scripts/fpga_analyze_spectrum.py
 	@mkdir -p $(dir $@)
-	$(PYTHON) scripts/fpga_analyze_spectrum.py --method csd --pair $* --out-dir $(dir $@)
+	$(PYTHON) scripts/fpga_analyze_spectrum.py --method csd --pair $* --out-dir $(dir $@) $(FPGA_FLAGS)
 
 results/fpga_spectrum/coherence/filter_spectrum_coherence_%.png: $(IQ_DIR)/%_i.data $(IQ_DIR)/%_q.data scripts/fpga_analyze_spectrum.py
 	@mkdir -p $(dir $@)
-	$(PYTHON) scripts/fpga_analyze_spectrum.py --method coherence --pair $* --out-dir $(dir $@)
+	$(PYTHON) scripts/fpga_analyze_spectrum.py --method coherence --pair $* --out-dir $(dir $@) $(FPGA_FLAGS)
 
 .PHONY: fpga-analyze-median
 fpga-analyze-median: $(MEDIAN_PLOTS) ## Run FPGA median IIR filter spectrum analysis
@@ -92,4 +95,7 @@ help: ## Show this help
 .PHONY: clean
 clean: ## Remove all created files
 	@rm -rf $(CONVERTED_DATA_DIR) results
+	@rm -rf $(MEDIAN_PLOTS) results
+	@rm -rf $(CSD_PLOTS) results
+	@rm -rf $(COHERENCE_PLOTS) results
 
