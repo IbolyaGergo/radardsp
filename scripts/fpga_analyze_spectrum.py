@@ -64,14 +64,25 @@ def plot_coherence_spectrum(ax, results_list, pair_id):
     ax.tick_params(axis="y", labelcolor="black")
 
     ax2 = ax.twinx()
-    line2 = ax2.plot(
-        base.freqs, base.emp_data, label=r"Coherence ($\gamma_{xy}^2$)", color="green", linewidth=2
-    )
+    colors = plt.cm.tab10(np.linspace(0, 1, len(results_list)))
+    coherence_lines = []
+
+    for res, color in zip(results_list, colors):
+        line = ax2.plot(
+            res.freqs,
+            res.emp_data,
+            label=r"Coherence ($\gamma_{xy}^2$) " + f"[{res.window_name}]",
+            color=color,
+            linewidth=2,
+            alpha=0.8,
+        )
+        coherence_lines.extend(line)
+
     ax2.set_ylabel("Coherence", color="green")
     ax2.tick_params(axis="y", labelcolor="green")
     ax2.set_ylim(-0.05, 1.05)
 
-    lines = line1 + line2
+    lines = line1 + coherence_lines
     labels = [l.get_label() for l in lines]
     ax.legend(lines, labels, loc="upper right")
 
