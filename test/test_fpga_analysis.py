@@ -7,6 +7,7 @@ from radarsig.fpga_analysis import (
     compute_coherence,
 )
 
+
 def test_analyze_iq_data():
     b = np.array([0.8, 0.2], dtype=float)
     a = np.array([1.0, 0.0], dtype=float)
@@ -20,10 +21,10 @@ def test_analyze_iq_data():
     y[:, -1] = b[0] * x[:, -1]
 
     results = analyze_iq_data(x, y, b, a, threshold=1e-3)
-    for part in ('real', 'imag'):
-        err_rel_max = np.max(np.abs(results[part]['err_rel']))
+    for part in ("real", "imag"):
+        err_rel_max = np.max(np.abs(results[part]["err_rel"]))
         assert err_rel_max < 1e-12
-        assert len(results[part]['failing_bins']) == 0
+        assert len(results[part]["failing_bins"]) == 0
 
 
 def test_compute_spectral_methods():
@@ -39,12 +40,12 @@ def test_compute_spectral_methods():
 
     # Test median ratio spectrum
     freqs, h_db, median_ratio_db = compute_median_ratio_spectrum(x, y, b, a)
-    rmse_median = np.sqrt(np.mean((h_db - median_ratio_db)**2))
+    rmse_median = np.sqrt(np.mean((h_db - median_ratio_db) ** 2))
     assert rmse_median < 1.5
 
     # Test CSD spectrum
-    freqs_csd, _, h_csd_db = compute_csd_spectrum(x, y, b, a)
-    rmse_csd = np.sqrt(np.mean((h_db_csd - h_csd_db)**2))
+    freqs_csd, h_db_csd, h_csd_db = compute_csd_spectrum(x, y, b, a)
+    rmse_csd = np.sqrt(np.mean((h_db_csd - h_csd_db) ** 2))
     assert rmse_csd < 1.5
 
     # Test coherence

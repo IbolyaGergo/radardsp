@@ -25,14 +25,16 @@ def test_load_binary_to_array(tmp_path):
     loaded_offset = load_binary_to_array(bin_path, dtype=np.int32, offset_dtype=2)
     np.testing.assert_array_equal(loaded_offset, np.array([30, 40, 50, 60], dtype=np.int32))
 
+
 # test_process_channel_data() {{{1
 def test_process_channel_data():
     # Verify even indices go to x and odd indices go to y
     data = np.array([10, 11, 20, 21, 30, 31, 40, 41], dtype=np.int32)
     x, y = process_channel_data(data, n_pulse=2)
-    
+
     np.testing.assert_array_equal(x, [[10, 20], [30, 40]])
-    np.testing.assert_array_equal(y, [[11, 21],[ 31, 41]])
+    np.testing.assert_array_equal(y, [[11, 21], [31, 41]])
+
 
 # test_process_filter_coeffs() {{{1
 def test_process_filter_coeffs():
@@ -42,6 +44,7 @@ def test_process_filter_coeffs():
 
     np.testing.assert_array_equal(b, [10, 20, 30, 40])
     np.testing.assert_array_equal(a, [1, 2, -3, 4])
+
 
 # test_find_iq_pairs() {{{1
 def test_find_iq_pairs(tmp_path):
@@ -58,6 +61,7 @@ def test_find_iq_pairs(tmp_path):
     assert len(pairs) == 2
     assert pairs[0] == ("000", tmp_path / "000_i.data", tmp_path / "000_q.data")
     assert pairs[1] == ("001", tmp_path / "001_i.data", tmp_path / "001_q.data")
+
 
 # test_analyze_iq_pair() {{{1
 def test_analyze_iq_pair(tmp_path):

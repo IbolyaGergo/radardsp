@@ -14,7 +14,7 @@ from radarsig.plot_utils import plot_filter_response
 # b: feedforward (K registers)
 # a: feedback (C registers)
 B_COEFFS = [0.90186173, -2.703357699, 2.703357699, -0.90186173]
-A_COEFFS = [1.00000000, 2.794421010, -2.605942211, 0.810075596] # Note: C0 is 1.0 (unused)
+A_COEFFS = [1.00000000, 2.794421010, -2.605942211, 0.810075596]  # Note: C0 is 1.0 (unused)
 
 
 def float_to_q16_int(val: float) -> int:
@@ -33,14 +33,18 @@ def q16_int_to_float(int_val: int) -> float:
 
 def print_coefficient_table(name: str, coeffs: list[float]):
     print(f"\n--- {name} Coefficients ---")
-    print(f"{'Index':<6} {'Original Float':<18} {'Q16 Dec':<12} {'Q16 Hex':<12} {'Quantized Float':<18} {'Error':<12}")
+    print(
+        f"{'Index':<6} {'Original Float':<18} {'Q16 Dec':<12} {'Q16 Hex':<12} {'Quantized Float':<18} {'Error':<12}"
+    )
     print("-" * 80)
     for i, orig in enumerate(coeffs):
         q16_int = float_to_q16_int(orig)
         hex_str = f"0x{q16_int & 0xFFFFFFFF:08X}"
         quant_float = q16_int_to_float(q16_int & 0xFFFFFFFF)
         error = abs(orig - quant_float)
-        print(f"{i:<6} {orig:<18.8f} {q16_int:<12} {hex_str:<12} {quant_float:<18.8f} {error:<12.2e}")
+        print(
+            f"{i:<6} {orig:<18.8f} {q16_int:<12} {hex_str:<12} {quant_float:<18.8f} {error:<12.2e}"
+        )
 
 
 def analyze_frequency_response(b_orig, a_orig, b_quant, a_quant):
@@ -63,11 +67,15 @@ def analyze_frequency_response(b_orig, a_orig, b_quant, a_quant):
     indices = [0, 256, 512, 768, 1023]
     for idx in indices:
         freq_pi = w[idx] / np.pi
-        print(f"{freq_pi:<18.4f} {mag_orig_db[idx]:<15.2f} {mag_quant_db[idx]:<15.2f} {diff[idx]:<15.2f}")
+        print(
+            f"{freq_pi:<18.4f} {mag_orig_db[idx]:<15.2f} {mag_quant_db[idx]:<15.2f} {diff[idx]:<15.2f}"
+        )
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Simulate Q16 quantization and frequency response for IIR filter.")
+    parser = argparse.ArgumentParser(
+        description="Simulate Q16 quantization and frequency response for IIR filter."
+    )
     parser.parse_args()
 
     print("IIR Filter Coefficient Q16 Quantization & Frequency Response Simulation")

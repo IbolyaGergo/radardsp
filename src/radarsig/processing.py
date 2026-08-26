@@ -2,15 +2,18 @@ import numpy as np
 from scipy.signal import lfilter
 from typing import Dict, Any, Optional
 
+
 def _apply_filter(data: np.ndarray, filt: Filter) -> np.ndarray:
     """Private helper to apply a filter to data."""
     return lfilter(filt.b, filt.a, data)
+
 
 def _downsample(data: np.ndarray, factor: int) -> np.ndarray:
     """Private helper to downsample data along the sample dimension."""
     if data.ndim == 1:
         return data[::factor]
     return data[:, ::factor]
+
 
 def compute_pulse_phase_difference(iq_data: np.ndarray) -> np.ndarray:
     """
@@ -23,6 +26,7 @@ def compute_pulse_phase_difference(iq_data: np.ndarray) -> np.ndarray:
         np.ndarray: Phase differences of shape (n_range_bin, n_pulse - 1) in radians.
     """
     return np.angle(iq_data[:, :-1] * np.conj(iq_data[:, 1:]))
+
 
 def compute_mean_phase_difference(iq_data: np.ndarray) -> np.ndarray:
     """
@@ -37,5 +41,3 @@ def compute_mean_phase_difference(iq_data: np.ndarray) -> np.ndarray:
     """
     r1 = np.mean(iq_data[:, :-1] * np.conj(iq_data[:, 1:]), axis=1)
     return np.angle(r1)
-
-

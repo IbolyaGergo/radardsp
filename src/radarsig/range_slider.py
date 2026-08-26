@@ -3,6 +3,7 @@ from matplotlib.widgets import Slider
 import numpy as np
 from typing import Callable, Optional
 
+
 class RangeSlider:
     def __init__(
         self,
@@ -27,19 +28,27 @@ class RangeSlider:
         # Setup slider axes
         self.ax_slider = plt.axes([0.2, 0.05, 0.6, 0.03])
         # The slider moves along the specified axis
-        self.slider = Slider(self.ax_slider, f'Axis {axis} idx', 0, self.dim_size - 1, valinit=0, valfmt='%d', valstep=1)
+        self.slider = Slider(
+            self.ax_slider,
+            f"Axis {axis} idx",
+            0,
+            self.dim_size - 1,
+            valinit=0,
+            valfmt="%d",
+            valstep=1,
+        )
         self.slider.on_changed(self.update)
 
         # Setup keyboard support
-        self.fig.canvas.mpl_connect('key_press_event', self.on_key)
+        self.fig.canvas.mpl_connect("key_press_event", self.on_key)
 
         self.update(0)
         plt.show()
 
     def on_key(self, event):
-        if event.key == 'left':
+        if event.key == "left":
             self.step_prev(event)
-        elif event.key == 'right':
+        elif event.key == "right":
             self.step_next(event)
 
     def step_prev(self, event):
