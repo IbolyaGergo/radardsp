@@ -98,7 +98,7 @@ ANALYSIS_METHODS = {
 }
 
 
-def plot_result(results_list, method: str, pair_id: str, out_dir: Path):
+def plot_result(results_list, method: str, pair_id: str, out_dir: Path | None):
     config = ANALYSIS_METHODS[method]
     plt.figure(figsize=(9, 5))
     ax = plt.gca()
@@ -111,11 +111,14 @@ def plot_result(results_list, method: str, pair_id: str, out_dir: Path):
     ax.grid(True, which="both", linestyle=":", alpha=0.7)
     plt.tight_layout()
 
-    out_dir.mkdir(parents=True, exist_ok=True)
-    plot_path = out_dir / f"{config['filename_prefix']}_{pair_id}.png"
-    plt.savefig(plot_path)
-    plt.close()
-    print(f"  Saved plot to {plot_path}")
+    if out_dir is not None:
+        out_dir.mkdir(parents=True, exist_ok=True)
+        plot_path = out_dir / f"{config['filename_prefix']}_{pair_id}.png"
+        plt.savefig(plot_path)
+        plt.close()
+        print(f"  Saved plot to {plot_path}")
+    else:
+        plt.show()
 
 
 def process_pair(pair_id, i_path, q_path, method, window_names, out_dir):
@@ -165,7 +168,7 @@ def main():
     args = parser.parse_args()
 
     data_dir = Path(args.dir)
-    out_dir = Path(args.out_dir) if args.out_dir else Path(f"results/fpga_spectrum/{args.method}")
+    out_dir = Path(args.out_dir) if args.out_dir else None
 
     if args.pair:
         i_path = data_dir / f"{args.pair}_i.data"
