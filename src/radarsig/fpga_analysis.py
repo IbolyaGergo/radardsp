@@ -131,6 +131,27 @@ def analyze_iq_pair(
     }
 
 
+# _prepare_spectrum_computation() {{{1
+def _prepare_spectrum_computation(
+    x: np.ndarray,
+    b: np.ndarray,
+    a: np.ndarray,
+    n_bins: int,
+    fft_len: int,
+    window: np.ndarray | None,
+) -> tuple[int, np.ndarray, int, np.ndarray, np.ndarray]:
+    n_bins = min(n_bins, x.shape[0])
+    window_arr = np.hamming(x.shape[1]) if window is None else window
+    half_len = fft_len // 2 + 1
+    freqs = np.linspace(0, np.pi, half_len)
+
+    w, h = freqz(b, a, worN=half_len)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        h_db = 20 * np.log10(np.abs(h))
+
+    return n_bins, window_arr, half_len, freqs, h_db
+
+
 # compute_median_ratio_spectrum() {{{1
 def compute_median_ratio_spectrum(
     x: np.ndarray,
@@ -145,13 +166,11 @@ def compute_median_ratio_spectrum(
     Compute empirical median ratio spectrum (|Y|/|X| in dB) across range bins
     and compare with theoretical freqz response.
     """
-    n_bins = min(n_bins, x.shape[0])
+    n_bins, window_arr, half_len, freqs, h_db = _prepare_spectrum_computation(
+        x, b, a, n_bins, fft_len, window
+    )
     x_sub = x[:n_bins, :]
     y_sub = y[:n_bins, :]
-
-    window_arr = np.hamming(x.shape[1]) if window is None else window
-    half_len = fft_len // 2 + 1
-    freqs = np.linspace(0, np.pi, half_len)
 
     ratio_db_list = []
     for k in range(n_bins):
@@ -166,10 +185,6 @@ def compute_median_ratio_spectrum(
         ratio_db_list.append(ratio_db)
 
     median_ratio_db = np.median(np.array(ratio_db_list), axis=0)
-
-    w, h = freqz(b, a, worN=half_len)
-    with np.errstate(divide="ignore", invalid="ignore"):
-        h_db = 20 * np.log10(np.abs(h))
 
     return freqs, h_db, median_ratio_db
 
@@ -188,20 +203,18 @@ def compute_csd_spectrum(
     Compute empirical CSD spectrum (S_yx / S_xx in dB) across range bins
     and compare with theoretical freqz response.
     """
-    n_bins = min(n_bins, x.shape[0])
+    n_bins, window_arr, half_len, freqs, h_db = _prepare_spectrum_computation(
+        x, b, a, n_bins, fft_len, window
+    )
     x_sub = x[:n_bins, :]
     y_sub = y[:n_bins, :]
-
-    window = np.hamming(x.shape[1])
-    half_len = fft_len // 2 + 1
-    freqs = np.linspace(0, np.pi, half_len)
 
     num_sum = np.zeros(half_len, dtype=complex)
     den_sum = np.zeros(half_len, dtype=complex)
 
     for k in range(n_bins):
-        x_win = x_sub[k] * window
-        y_win = y_sub[k] * window
+        x_win = x_sub[k] * window_arr
+        y_win = y_sub[k] * window_arr
 
         X_fft = np.fft.fft(x_win, n=fft_len)[:half_len]
         Y_fft = np.fft.fft(y_win, n=fft_len)[:half_len]
@@ -212,10 +225,6 @@ def compute_csd_spectrum(
     H_csd = num_sum / den_sum
     with np.errstate(divide="ignore", invalid="ignore"):
         h_csd_db = 20 * np.log10(np.abs(H_csd))
-
-    w, h = freqz(b, a, worN=half_len)
-    with np.errstate(divide="ignore", invalid="ignore"):
-        h_db = 20 * np.log10(np.abs(h))
 
     return freqs, h_db, h_csd_db
 
@@ -234,21 +243,19 @@ def compute_coherence(
     Compute Magnitude-Squared Coherence (gamma_xy^2) between x and y across range bins
     along with theoretical freqz response.
     """
-    n_bins = min(n_bins, x.shape[0])
+    n_bins, window_arr, half_len, freqs, h_db = _prepare_spectrum_computation(
+        x, b, a, n_bins, fft_len, window
+    )
     x_sub = x[:n_bins, :]
     y_sub = y[:n_bins, :]
-
-    window = np.hamming(x.shape[1])
-    half_len = fft_len // 2 + 1
-    freqs = np.linspace(0, np.pi, half_len)
 
     num_sum = np.zeros(half_len, dtype=complex)
     den_x_sum = np.zeros(half_len, dtype=float)
     den_y_sum = np.zeros(half_len, dtype=float)
 
     for k in range(n_bins):
-        x_win = x_sub[k] * window
-        y_win = y_sub[k] * window
+        x_win = x_sub[k] * window_arr
+        y_win = y_sub[k] * window_arr
 
         X_fft = np.fft.fft(x_win, n=fft_len)[:half_len]
         Y_fft = np.fft.fft(y_win, n=fft_len)[:half_len]
@@ -260,9 +267,5 @@ def compute_coherence(
     with np.errstate(divide="ignore", invalid="ignore"):
         coherence = np.abs(num_sum) ** 2 / (den_x_sum * den_y_sum)
         coherence = np.nan_to_num(coherence, nan=0.0)
-
-    w, h = freqz(b, a, worN=half_len)
-    with np.errstate(divide="ignore", invalid="ignore"):
-        h_db = 20 * np.log10(np.abs(h))
 
     return freqs, h_db, coherence
