@@ -10,10 +10,17 @@ from radarsig.fpga_io import (
 )
 from radarsig.filters import compute_noise_power_gain_db
 
+# NOTE: pairs 005-008 are omitted, because no filter was applied
 RANGES = {
     "000": (2400, 2900),
     "001": (2100, 3000),
-    # Add more pairs as inspected
+    "002": (1500, 2500),
+    "003": (1500, 2500),
+    "004": (1700, 2500),
+    "009": (1700, 2500),
+    "010": (1700, 2500),
+    "011": (1700, 2500),
+    "012": (1700, 2500),
 }
 
 data_dir = Path("data/raw/fpga/iq/")
