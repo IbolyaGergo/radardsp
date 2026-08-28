@@ -53,6 +53,25 @@ def load_filter_coeffs_from_binary(path: Path, n_tap: int = 8):
     return process_filter_coeffs(data, n_tap=n_tap)
 
 
+# find_iq_pair_by_id() {{{1
+def find_iq_pair_by_id(data_dir: Path | str, pair_id: str) -> tuple[Path, Path]:
+    """Find matching IQ file pair (<pair_id>_i.data and <pair_id>_q.data) in data_dir."""
+    directory = Path(data_dir)
+    if not directory.is_dir():
+        raise FileNotFoundError(f"Directory not found: {directory}")
+
+    if isinstance(pair_id, int):
+        pair_id = f"{pair_id:03d}"
+
+    i_path = directory / f"{pair_id}_i.data"
+    q_path = directory / f"{pair_id}_q.data"
+
+    if i_path.exists() and q_path.exists():
+        return i_path, q_path
+
+    raise FileNotFoundError(f"IQ file pair for ID '{pair_id}' not found in {directory}")
+
+
 # find_iq_pairs() {{{1
 def find_iq_pairs(data_dir: Path | str) -> list[tuple[str, Path, Path]]:
     """Find matching IQ file pairs (*_i.data and *_q.data) in directory."""
