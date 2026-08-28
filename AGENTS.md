@@ -4,6 +4,7 @@ Read *.md
 
 ## Communication & Process
 - **Collaborative Flow**: Always suggest and discuss proposed changes. Never modify files without explicit user confirmation.
+- **Token & Resource Conservation**: Always ask for explicit user confirmation before reading files, writing files, or using any tool that might consume a large number of tokens or perform heavy I/O operations.
 - **Incrementalism**: Avoid "big bang" refactoring. Prefer small, verifiable steps.
 - **Separation of Concerns**: Enforce strict boundaries between logic and core data processing/simulation logic.
 
@@ -12,6 +13,7 @@ Read *.md
 - **CLI Parsing**: Standardize on `argparse`.
 - **Refactoring Goal**: Focus on improving user experience (UX) and testability.
 - **Maintainability**: Prioritize readable, modular code over clever optimizations.
+- **Plotting Style**: Use matplotlib object-oriented API (`fig, ax = plt.subplots(...)`) rather than MATLAB-style global state.
 
 ## Execution
 - **Validation**: When proposing changes, outline how they can be verified.
