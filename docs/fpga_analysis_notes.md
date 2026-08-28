@@ -33,3 +33,26 @@ When comparing empirical FPGA data against theoretical models, two primary spect
 * **Mechanism:** Computes:
   $$H_{\text{csd}}(\omega) = \frac{\sum_k Y_k(\omega) X_k^*(\omega)}{\sum_k X_k(\omega) X_k^*(\omega)}$$
 * **Characteristics:** Sensitive to non-stationarities. Strong clutter or high-power point targets dominate the linear sums ($\sum$), leading to skew, bias, and passband fluctuations (e.g., ~10 dB ripples observed in real measurements).
+
+## 4. Noise difference in dB
+IQ data of shape (n_range_bin, n_pulse)
+The IIR filter is applied along pulses.
+According to GEIMINI, the theoretical noise power gain on axis=0, range bins, is dependent only on
+  the filter coefficients b, a.
+To compute the theoretical gain, Gemini proposed:
+ By Parseval's theorem, the noise power gain is the average squared magnitude of the
+ frequency response over all frequencies:
+ ```python
+   import numpy as np
+   from scipy.signal import freqz
+
+   # Get frequency response over [0, pi]
+   freqs, h = freqz(b, a, worN=512)
+   h_power = np.abs(h) ** 2
+
+   # Numerical integration (trapezoidal rule) over [0, pi] (normalized frequency)
+   noise_power_gain = np.trapezoid(h_power, freqs) / np.pi
+   noise_power_gain_db = 10 * np.log10(noise_power_gain)
+
+   print(f"Theoretical Noise Power Gain: {noise_power_gain_db:.2f} dB")
+ ```
