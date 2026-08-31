@@ -25,6 +25,24 @@ RANGES = {
 }
 
 
+def plot_pair_noise_stats(pair_id, emp_gains_db, theoretical_gain_db):
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.plot(emp_gains_db, "-o", label="Measured Median Gain")
+    ax.axhline(
+        theoretical_gain_db,
+        color="red",
+        linestyle="--",
+        label=f"Theoretical Gain ({theoretical_gain_db:.2f} dB)",
+    )
+    ax.set_xlabel("Pulse Index")
+    ax.set_ylabel("Noise Power Gain [dB]")
+    ax.set_title(f"Noise Gain Statistics - Pair {pair_id}")
+    ax.legend()
+    ax.grid(True, linestyle=":", alpha=0.7)
+    fig.tight_layout()
+    return fig
+
+
 def main():
     parser = argparse.ArgumentParser(description="Analyze FPGA noise and compute statistics.")
     parser.add_argument(
