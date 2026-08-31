@@ -25,6 +25,18 @@ RANGES = {
 }
 
 
+def show_or_save_plot(fig, plot_name, args):
+    if args.out_dir:
+        plot_path = args.out_dir / f"{plot_name}.png"
+        fig.savefig(plot_path)
+        print(f"  Saved plot to {plot_path}")
+
+    if args.show or not args.out_dir:
+        plt.show()
+
+    plt.close(fig)
+
+
 def plot_pair_noise_stats(pair_id, emp_gains_db, theoretical_gain_db):
     fig, ax = plt.subplots(figsize=(8, 5))
     ax.plot(emp_gains_db, "-o", label="Measured Median Gain")
@@ -52,16 +64,10 @@ def main():
         help="Directory containing raw FPGA IQ data.",
     )
     parser.add_argument(
-        "--csv",
+        "--out-dir",
         type=Path,
         default=None,
-        help="Path to save noise statistics CSV. If not specified, CSV is not saved.",
-    )
-    parser.add_argument(
-        "--plot-dir",
-        type=Path,
-        default=None,
-        help="Directory to save inspection plots. If not specified, plots are not saved.",
+        help="Directory to save output plots and CSV stats. If not specified, outputs are not saved.",
     )
     parser.add_argument(
         "--show",
@@ -70,10 +76,8 @@ def main():
     )
     args = parser.parse_args()
 
-    if args.plot_dir:
-        args.plot_dir.mkdir(parents=True, exist_ok=True)
-
-    csv_rows = []
+    if args.out_dir:
+        args.out_dir.mkdir(parents=True, exist_ok=True)
 
     for pair_id, (start, end) in RANGES.items():
         print(f"Processing pair {pair_id}, range ({start}, {end})...")
@@ -104,17 +108,11 @@ def main():
             ax.grid(True, linestyle=":", alpha=0.7)
         fig.tight_layout()
 
-        if args.plot_dir:
-            plot_path = args.plot_dir / f"noise_range_{pair_id}.png"
-            fig.savefig(plot_path)
-            print(f"  Saved inspection plot to {plot_path}")
-
-        if args.show or (not args.csv and not args.plot_dir):
-            plt.show()
-
-        plt.close(fig)
+        show_or_save_plot(fig, f"noise_range_{pair_id}", args)
 
         # Compute statistics within the noise range
+        csv_rows = []
+        emp_gains_db = []
         for idx in range(x.shape[1]):
             x_seg = x[start:end, idx]
             y_seg = y[start:end, idx]
@@ -126,6 +124,7 @@ def main():
             y_power_median = np.median(np.abs(y_seg) ** 2)
             x_power_median = np.median(np.abs(x_seg) ** 2)
             median_diff_db = 10 * np.log10(y_power_median / x_power_median)
+            emp_gains_db.append(median_diff_db)
 
             print(
                 f"  Pulse {idx}: theoretical_gain_db={theoretical_gain_db:.2f} dB, mean_diff={mean_diff_db:.2f} dB, median_diff={median_diff_db:.2f} dB"
@@ -142,25 +141,29 @@ def main():
                 }
             )
 
-    # Write CSV stats if requested
-    if args.csv and csv_rows:
-        args.csv.parent.mkdir(parents=True, exist_ok=True)
-        with open(args.csv, "w", newline="") as f:
-            writer = csv.DictWriter(
-                f,
-                fieldnames=[
-                    "pair_id",
-                    "pulse_idx",
-                    "range_start",
-                    "range_end",
-                    "theoretical_gain_db",
-                    "mean_diff_db",
-                    "median_diff_db",
-                ],
-            )
-            writer.writeheader()
-            writer.writerows(csv_rows)
-        print(f"Saved noise statistics to {args.csv}")
+        # Plot summary noise statistics for this pair
+        fig_sum = plot_pair_noise_stats(pair_id, emp_gains_db, theoretical_gain_db)
+        show_or_save_plot(fig_sum, f"noise_stats_{pair_id}", args)
+
+        # Write per-pair CSV stats if requested
+        if args.out_dir and csv_rows:
+            csv_path = args.out_dir / f"noise_stats_{pair_id}.csv"
+            with open(csv_path, "w", newline="") as f:
+                writer = csv.DictWriter(
+                    f,
+                    fieldnames=[
+                        "pair_id",
+                        "pulse_idx",
+                        "range_start",
+                        "range_end",
+                        "theoretical_gain_db",
+                        "mean_diff_db",
+                        "median_diff_db",
+                    ],
+                )
+                writer.writeheader()
+                writer.writerows(csv_rows)
+            print(f"  Saved noise statistics to {csv_path}")
 
 
 if __name__ == "__main__":

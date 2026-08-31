@@ -75,24 +75,15 @@ fpga-analyze-coherence: $(COHERENCE_PLOTS) ## Run FPGA coherence analysis
 fpga-analyze-all: fpga-analyze-median fpga-analyze-csd fpga-analyze-coherence ## Run all FPGA spectral analyses
 
 # --- FPGA Noise Analysis ---
-NOISE_CSV := results/noise/noise_stats.csv
-NOISE_PLOT_DIR := results/noise
+NOISE_OUT_DIR := results/noise
+NOISE_CSVS := $(patsubst %, $(NOISE_OUT_DIR)/noise_stats_%.csv, $(PAIR_IDS))
 
-$(NOISE_CSV): scripts/fpga_analyze_noise.py $(IQ_I_FILES)
-	@mkdir -p $(dir $@)
-	$(PYTHON) scripts/fpga_analyze_noise.py --csv $@
+$(NOISE_CSVS): scripts/fpga_analyze_noise.py $(IQ_I_FILES)
+	@mkdir -p $(NOISE_OUT_DIR)
+	$(PYTHON) scripts/fpga_analyze_noise.py --out-dir $(NOISE_OUT_DIR)
 
-.PHONY: fpga-analyze-noise-csv
-fpga-analyze-noise-csv: $(NOISE_CSV) ## Generate FPGA noise statistics CSV
-
-.PHONY: fpga-analyze-noise-plots
-fpga-analyze-noise-plots: ## Generate FPGA noise inspection plots
-	@mkdir -p $(NOISE_PLOT_DIR)
-	$(PYTHON) scripts/fpga_analyze_noise.py --plot-dir $(NOISE_PLOT_DIR)
-
-.PHONY: fpga-analyze-noise-all
-fpga-analyze-noise-all: $(NOISE_CSV) ## Generate both FPGA noise CSV and inspection plots
-	$(PYTHON) scripts/fpga_analyze_noise.py --csv $(NOISE_CSV) --plot-dir $(NOISE_PLOT_DIR)
+.PHONY: fpga-analyze-noise
+fpga-analyze-noise: $(NOISE_CSVS) ## Run FPGA noise noise analysis (ranges plots, summary plots, and CSVs)
 
 # --- Tags ---
 .PHONY: tags
@@ -105,6 +96,7 @@ vars: ## Print variables for debug
 	$(info RAW_FILES is $(RAW_FILES))
 	$(info CONVERTED_FILES is $(CONVERTED_FILES))
 	$(info IQ_I_FILES is $(IQ_I_FILES))
+	$(info NOISE_CSVS is $(NOISE_CSVS))
 
 # --- Help ---
 .PHONY: help
