@@ -74,6 +74,18 @@ fpga-analyze-coherence: $(COHERENCE_PLOTS) ## Run FPGA coherence analysis
 .PHONY: fpga-analyze-all
 fpga-analyze-all: fpga-analyze-median fpga-analyze-csd fpga-analyze-coherence ## Run all FPGA spectral analyses
 
+# --- FPGA Simulation ---
+SIMULATE_OUT_DIR := results/fpga_simulate
+SIMULATE_PLOTS := $(patsubst %, $(SIMULATE_OUT_DIR)/simulate_response_%.png, $(PAIR_IDS))
+
+$(SIMULATE_OUT_DIR)/simulate_response_%.png: $(IQ_DIR)/%_i.data scripts/simulate_fpga_filter.py
+	@mkdir -p $(dir $@)
+	$(PYTHON) scripts/simulate_fpga_filter.py --pair $* --out-dir $(dir $@)
+
+.PHONY: fpga-simulate-response-all
+fpga-simulate-response-all: $(SIMULATE_PLOTS) ## Run FPGA filter simulation response for all pairs
+
+
 # --- FPGA Noise Analysis ---
 NOISE_OUT_DIR := results/noise
 NOISE_CSVS := $(patsubst %, $(NOISE_OUT_DIR)/noise_stats_%.csv, $(PAIR_IDS))
@@ -96,6 +108,7 @@ vars: ## Print variables for debug
 	$(info RAW_FILES is $(RAW_FILES))
 	$(info CONVERTED_FILES is $(CONVERTED_FILES))
 	$(info IQ_I_FILES is $(IQ_I_FILES))
+	$(info SIMULATE_PLOTS is $(SIMULATE_PLOTS))
 	$(info NOISE_CSVS is $(NOISE_CSVS))
 
 # --- Help ---

@@ -3,6 +3,7 @@
 and computing compute_median_ratio_spectrum to observe transient convergence.
 """
 
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
@@ -12,8 +13,28 @@ from radarsig.fpga_analysis import compute_median_ratio_spectrum, compute_csd_sp
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Simulate FPGA IIR filter transient convergence.")
+    parser.add_argument(
+        "--pair",
+        type=str,
+        default="000",
+        help="IQ pair ID to load coefficients from (default: 000)",
+    )
+    parser.add_argument(
+        "--out-dir",
+        type=Path,
+        default=None,
+        help="Directory to save output plots. If not specified, outputs are not saved.",
+    )
+    parser.add_argument(
+        "--show",
+        action="store_true",
+        help="Display the plot interactively.",
+    )
+    args = parser.parse_args()
+
     # 1. Load filter coefficients from real binary data if available, else fallback
-    coeff_path = Path("data/raw/fpga/iq/000_i.data")
+    coeff_path = Path(f"data/raw/fpga/iq/{args.pair}_i.data")
     if coeff_path.exists():
         b, a = load_filter_coeffs_from_binary(coeff_path)
         print(f"Loaded coefficients from {coeff_path}")
@@ -35,7 +56,7 @@ def main():
     chunk_width = 14
     chunk_indices = [0, 1, 2, 5, 20, 100, 250]
 
-    plt.figure(figsize=(12, 7))
+    fig, ax = plt.subplots(figsize=(8, 5))
 
     # Get theoretical reference curve
     fft_len = 256
@@ -47,9 +68,7 @@ def main():
 
     freqs = np.linspace(0, np.pi, half_len)
 
-    plt.plot(
-        freqs, h_db, label="Theoretical H(dB) [freqz]", color="black", linewidth=2.5, zorder=10
-    )
+    ax.plot(freqs, h_db, label="Theoretical H(dB) [freqz]", color="black", linewidth=2.5, zorder=10)
 
     colors = plt.cm.viridis(np.linspace(0.1, 0.9, len(chunk_indices)))
 
@@ -66,7 +85,7 @@ def main():
             x_chunk, y_chunk, b, a, n_bins=n_bins, fft_len=256
         )
 
-        plt.plot(
+        ax.plot(
             freqs,
             median_ratio_db,
             label=f"Chunk {c_idx} (samples {start}–{end})",
@@ -74,13 +93,23 @@ def main():
             alpha=0.8,
         )
 
-    plt.title("Median Ratio Spectrum Convergence Over Successive Chunks (Width=14)")
-    plt.xlabel("Frequency (rad/sample)")
-    plt.ylabel("Magnitude Ratio (dB)")
-    plt.grid(True)
-    plt.legend(loc="upper right")
-    plt.tight_layout()
-    plt.show()
+    ax.set_title(f"Median Ratio Spectrum Convergence (Pair {args.pair}, Width=14)")
+    ax.set_xlabel("Frequency (rad/sample)")
+    ax.set_ylabel("Magnitude Ratio (dB)")
+    ax.grid(True)
+    ax.legend(loc="upper right")
+    fig.tight_layout()
+
+    if args.out_dir is not None:
+        args.out_dir.mkdir(parents=True, exist_ok=True)
+        plot_path = args.out_dir / f"simulate_response_{args.pair}.png"
+        fig.savefig(plot_path)
+        print(f"Saved plot to {plot_path}")
+
+    if args.show or args.out_dir is None:
+        plt.show()
+
+    plt.close(fig)
 
 
 if __name__ == "__main__":
