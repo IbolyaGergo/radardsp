@@ -107,7 +107,3 @@ help: ## Show this help
 .PHONY: clean
 clean: ## Remove all created files
 	@rm -rf $(CONVERTED_DATA_DIR) results
-	@rm -rf $(MEDIAN_PLOTS) results
-	@rm -rf $(CSD_PLOTS) results
-	@rm -rf $(COHERENCE_PLOTS) results
-
