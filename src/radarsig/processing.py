@@ -41,3 +41,20 @@ def compute_mean_phase_difference(iq_data: np.ndarray) -> np.ndarray:
     """
     r1 = np.mean(iq_data[:, :-1] * np.conj(iq_data[:, 1:]), axis=1)
     return np.angle(r1)
+
+
+def compute_signal_quality_index(iq_data: np.ndarray) -> np.ndarray:
+    """
+    Computes the Signal Quality Index (SQI) as the magnitude of the normalized
+    lag-1 autocorrelation coefficient for each range bin.
+
+    Parameters:
+        iq_data (np.ndarray): Complex IQ data of shape (n_range_bin, n_pulse)
+
+    Returns:
+        np.ndarray: SQI of shape (n_range_bin,) ranging from 0 to 1.
+    """
+    num = np.abs(np.mean(iq_data[:, :-1] * np.conj(iq_data[:, 1:]), axis=1))
+    den = np.abs(np.mean(iq_data * np.conj(iq_data), axis=1))
+    with np.errstate(divide="ignore", invalid="ignore"):
+        return np.where(den == 0, 0.0, num / den)

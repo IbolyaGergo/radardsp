@@ -3,6 +3,7 @@ import numpy as np
 from radarsig.processing import (
     compute_pulse_phase_difference,
     compute_mean_phase_difference,
+    compute_signal_quality_index,
 )
 
 
@@ -42,3 +43,18 @@ def test_compute_mean_phase_difference():
 
     assert mean_phi.shape == (n_range,)
     np.testing.assert_allclose(mean_phi, [-delta], atol=1e-7)
+
+
+def test_compute_signal_quality_index():
+    n_range = 1
+    n_pulse = 5
+    # Constant signal (pure tone) should have SQI = 1.0
+    iq_data = np.ones((n_range, n_pulse), dtype=complex)
+    sqi = compute_signal_quality_index(iq_data)
+    assert sqi.shape == (n_range,)
+    np.testing.assert_allclose(sqi, [1.0], atol=1e-7)
+
+    # Zero signal should handle division by zero gracefully (SQI = 0.0)
+    iq_zero = np.zeros((n_range, n_pulse), dtype=complex)
+    sqi_zero = compute_signal_quality_index(iq_zero)
+    np.testing.assert_allclose(sqi_zero, [0.0], atol=1e-7)
