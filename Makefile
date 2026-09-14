@@ -74,6 +74,18 @@ fpga-analyze-coherence: $(COHERENCE_PLOTS) ## Run FPGA coherence analysis
 .PHONY: fpga-analyze-all
 fpga-analyze-all: fpga-analyze-median fpga-analyze-csd fpga-analyze-coherence ## Run all FPGA spectral analyses
 
+# --- FPGA Filter Residuals Analysis ---
+RESIDUALS_OUT_DIR := results/fpga_filter_residuals
+RESIDUALS_CSVS := $(patsubst %, $(RESIDUALS_OUT_DIR)/%.csv, $(PAIR_IDS))
+
+$(RESIDUALS_OUT_DIR)/%.csv: $(IQ_DIR)/%_i.data $(IQ_DIR)/%_q.data scripts/fpga_analyze_filter.py
+	@mkdir -p $(dir $@)
+	$(PYTHON) scripts/fpga_analyze_filter.py --pair $* --out $@
+
+.PHONY: fpga-analyze-filter-residuals
+fpga-analyze-filter-residuals: $(RESIDUALS_CSVS) ## Run FPGA filter difference equation residual analysis for all pairs
+
+
 # --- FPGA Simulation ---
 SIMULATE_OUT_DIR := results/fpga_simulate
 SIMULATE_PLOTS := $(patsubst %, $(SIMULATE_OUT_DIR)/simulate_response_%.png, $(PAIR_IDS))
