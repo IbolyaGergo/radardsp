@@ -78,9 +78,9 @@ fpga-analyze-all: fpga-analyze-median fpga-analyze-csd fpga-analyze-coherence ##
 RESIDUALS_OUT_DIR := results/fpga_filter_residuals
 RESIDUALS_CSVS := $(patsubst %, $(RESIDUALS_OUT_DIR)/%.csv, $(PAIR_IDS))
 
-$(RESIDUALS_OUT_DIR)/%.csv: $(IQ_DIR)/%_i.data $(IQ_DIR)/%_q.data scripts/fpga_analyze_filter.py
+$(RESIDUALS_OUT_DIR)/%.csv: $(IQ_DIR)/%_i.data $(IQ_DIR)/%_q.data scripts/fpga_analyze_filter_residuals.py
 	@mkdir -p $(dir $@)
-	$(PYTHON) scripts/fpga_analyze_filter.py --pair $* --out $@
+	$(PYTHON) scripts/fpga_analyze_filter_residuals.py --pair $* --out $@
 
 .PHONY: fpga-analyze-filter-residuals
 fpga-analyze-filter-residuals: $(RESIDUALS_CSVS) ## Run FPGA filter difference equation residual analysis for all pairs
