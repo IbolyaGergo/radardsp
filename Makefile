@@ -43,36 +43,38 @@ IQ_DIR := data/raw/fpga/iq
 IQ_I_FILES := $(shell find $(IQ_DIR) -name "*_i.data")
 PAIR_IDS := $(notdir $(basename $(patsubst %_i.data,%,$(IQ_I_FILES))))
 
-MEDIAN_PLOTS := $(patsubst %, results/fpga_spectrum/median/%.png, $(PAIR_IDS))
-CSD_PLOTS := $(patsubst %, results/fpga_spectrum/csd/%.png, $(PAIR_IDS))
-COHERENCE_PLOTS := $(patsubst %, results/fpga_spectrum/coherence/%.png, $(PAIR_IDS))
+RESPONSE_OUT_DIR := results/fpga_filter_response
+RESPONSE_SCRIPT := scripts/fpga_analyze_filter_response.py
+MEDIAN_PLOTS := $(patsubst %, $(RESPONSE_OUT_DIR)/median/%.png, $(PAIR_IDS))
+CSD_PLOTS := $(patsubst %, $(RESPONSE_OUT_DIR)/csd/%.png, $(PAIR_IDS))
+COHERENCE_PLOTS := $(patsubst %, $(RESPONSE_OUT_DIR)/coherence/%.png, $(PAIR_IDS))
 
 WINDOW ?= hamming
 FPGA_FLAGS := --window $(WINDOW)
 
-results/fpga_spectrum/median/%.png: $(IQ_DIR)/%_i.data $(IQ_DIR)/%_q.data scripts/fpga_analyze_spectrum.py
+$(RESPONSE_OUT_DIR)/median/%.png: $(IQ_DIR)/%_i.data $(IQ_DIR)/%_q.data $(RESPONSE_SCRIPT)
 	@mkdir -p $(dir $@)
-	$(PYTHON) scripts/fpga_analyze_spectrum.py --method median --pair $* --out $@ $(FPGA_FLAGS)
+	$(PYTHON) $(RESPONSE_SCRIPT) --method median --pair $* --out $@ $(FPGA_FLAGS)
 
-results/fpga_spectrum/csd/%.png: $(IQ_DIR)/%_i.data $(IQ_DIR)/%_q.data scripts/fpga_analyze_spectrum.py
+$(RESPONSE_OUT_DIR)/csd/%.png: $(IQ_DIR)/%_i.data $(IQ_DIR)/%_q.data $(RESPONSE_SCRIPT)
 	@mkdir -p $(dir $@)
-	$(PYTHON) scripts/fpga_analyze_spectrum.py --method csd --pair $* --out $@ $(FPGA_FLAGS)
+	$(PYTHON) $(RESPONSE_SCRIPT) --method csd --pair $* --out $@ $(FPGA_FLAGS)
 
-results/fpga_spectrum/coherence/%.png: $(IQ_DIR)/%_i.data $(IQ_DIR)/%_q.data scripts/fpga_analyze_spectrum.py
+$(RESPONSE_OUT_DIR)/coherence/%.png: $(IQ_DIR)/%_i.data $(IQ_DIR)/%_q.data $(RESPONSE_SCRIPT)
 	@mkdir -p $(dir $@)
-	$(PYTHON) scripts/fpga_analyze_spectrum.py --method coherence --pair $* --out $@ $(FPGA_FLAGS)
+	$(PYTHON) $(RESPONSE_SCRIPT) --method coherence --pair $* --out $@ $(FPGA_FLAGS)
 
-.PHONY: fpga-analyze-median
-fpga-analyze-median: $(MEDIAN_PLOTS) ## Run FPGA median IIR filter spectrum analysis
+.PHONY: fpga-analyze-filter-response-median
+fpga-analyze-filter-response-median: $(MEDIAN_PLOTS) ## Run FPGA median IIR filter spectrum analysis
 
-.PHONY: fpga-analyze-csd
-fpga-analyze-csd: $(CSD_PLOTS) ## Run FPGA CSD IIR filter spectrum analysis
+.PHONY: fpga-analyze-filter-response-csd
+fpga-analyze-filter-response-csd: $(CSD_PLOTS) ## Run FPGA CSD IIR filter spectrum analysis
 
-.PHONY: fpga-analyze-coherence
-fpga-analyze-coherence: $(COHERENCE_PLOTS) ## Run FPGA coherence analysis
+.PHONY: fpga-analyze-filter-response-coherence
+fpga-analyze-filter-response-coherence: $(COHERENCE_PLOTS) ## Run FPGA coherence analysis
 
-.PHONY: fpga-analyze-all
-fpga-analyze-all: fpga-analyze-median fpga-analyze-csd fpga-analyze-coherence ## Run all FPGA spectral analyses
+.PHONY: fpga-analyze-filter-response-all
+fpga-analyze-filter-response-all: fpga-analyze-filter-response-median fpga-analyze-filter-response-csd fpga-analyze-filter-response-coherence ## Run all FPGA spectral analyses
 
 # --- FPGA Filter Residuals Analysis ---
 RESIDUALS_OUT_DIR := results/fpga_filter_residuals
