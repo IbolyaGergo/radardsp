@@ -52,17 +52,17 @@ COHERENCE_PLOTS := $(patsubst %, $(RESPONSE_OUT_DIR)/coherence/%.png, $(PAIR_IDS
 WINDOW ?= hamming
 FPGA_FLAGS := --window $(WINDOW)
 
-$(RESPONSE_OUT_DIR)/median/%.png: $(IQ_DIR)/%_i.data $(IQ_DIR)/%_q.data $(RESPONSE_SCRIPT)
+$(RESPONSE_OUT_DIR)/median/%.png: $(RESPONSE_SCRIPT) $(IQ_DIR)/%_i.data $(IQ_DIR)/%_q.data
 	@mkdir -p $(dir $@)
-	$(PYTHON) $(RESPONSE_SCRIPT) --method median --pair $* --out $@ $(FPGA_FLAGS)
+	$(PYTHON) $< --method median --pair $* --out $@ $(FPGA_FLAGS)
 
-$(RESPONSE_OUT_DIR)/csd/%.png: $(IQ_DIR)/%_i.data $(IQ_DIR)/%_q.data $(RESPONSE_SCRIPT)
+$(RESPONSE_OUT_DIR)/csd/%.png: $(RESPONSE_SCRIPT) $(IQ_DIR)/%_i.data $(IQ_DIR)/%_q.data
 	@mkdir -p $(dir $@)
-	$(PYTHON) $(RESPONSE_SCRIPT) --method csd --pair $* --out $@ $(FPGA_FLAGS)
+	$(PYTHON) $< --method csd --pair $* --out $@ $(FPGA_FLAGS)
 
-$(RESPONSE_OUT_DIR)/coherence/%.png: $(IQ_DIR)/%_i.data $(IQ_DIR)/%_q.data $(RESPONSE_SCRIPT)
+$(RESPONSE_OUT_DIR)/coherence/%.png: $(RESPONSE_SCRIPT) $(IQ_DIR)/%_i.data $(IQ_DIR)/%_q.data
 	@mkdir -p $(dir $@)
-	$(PYTHON) $(RESPONSE_SCRIPT) --method coherence --pair $* --out $@ $(FPGA_FLAGS)
+	$(PYTHON) $< --method coherence --pair $* --out $@ $(FPGA_FLAGS)
 
 .PHONY: fpga-analyze-filter-response-median
 fpga-analyze-filter-response-median: $(MEDIAN_PLOTS) ## Run FPGA median IIR filter spectrum analysis
@@ -80,9 +80,9 @@ fpga-analyze-filter-response-all: fpga-analyze-filter-response-median fpga-analy
 RESIDUALS_OUT_DIR := results/fpga_filter_residuals
 RESIDUALS_CSVS := $(patsubst %, $(RESIDUALS_OUT_DIR)/%.csv, $(PAIR_IDS))
 
-$(RESIDUALS_OUT_DIR)/%.csv: $(IQ_DIR)/%_i.data $(IQ_DIR)/%_q.data scripts/fpga_analyze_filter_residuals.py
+$(RESIDUALS_OUT_DIR)/%.csv: scripts/fpga_analyze_filter_residuals.py $(IQ_DIR)/%_i.data $(IQ_DIR)/%_q.data
 	@mkdir -p $(dir $@)
-	$(PYTHON) scripts/fpga_analyze_filter_residuals.py --pair $* --out $@
+	$(PYTHON) $< --pair $* --out $@
 
 .PHONY: fpga-analyze-filter-residuals
 fpga-analyze-filter-residuals: $(RESIDUALS_CSVS) ## Run FPGA filter difference equation residual analysis for all pairs
@@ -92,9 +92,9 @@ fpga-analyze-filter-residuals: $(RESIDUALS_CSVS) ## Run FPGA filter difference e
 SIMULATE_OUT_DIR := results/fpga_simulate
 SIMULATE_PLOTS := $(patsubst %, $(SIMULATE_OUT_DIR)/%.png, $(PAIR_IDS))
 
-$(SIMULATE_OUT_DIR)/%.png: $(IQ_DIR)/%_i.data scripts/simulate_fpga_filter.py
+$(SIMULATE_OUT_DIR)/%.png: scripts/simulate_fpga_filter.py $(IQ_DIR)/%_i.data
 	@mkdir -p $(dir $@)
-	$(PYTHON) scripts/simulate_fpga_filter.py --pair $* --out $@
+	$(PYTHON) $< --pair $* --out $@
 
 .PHONY: fpga-simulate-response-all
 fpga-simulate-response-all: $(SIMULATE_PLOTS) ## Run FPGA filter simulation response for all pairs
@@ -106,7 +106,7 @@ NOISE_CSVS := $(patsubst %, $(NOISE_OUT_DIR)/noise_stats_%.csv, $(PAIR_IDS))
 
 $(NOISE_CSVS): scripts/fpga_analyze_noise.py $(IQ_I_FILES)
 	@mkdir -p $(NOISE_OUT_DIR)
-	$(PYTHON) scripts/fpga_analyze_noise.py --out-dir $(NOISE_OUT_DIR)
+	$(PYTHON) $< --out-dir $(NOISE_OUT_DIR)
 
 .PHONY: fpga-analyze-noise
 fpga-analyze-noise: $(NOISE_CSVS) ## Run FPGA noise noise analysis (ranges plots, summary plots, and CSVs)
