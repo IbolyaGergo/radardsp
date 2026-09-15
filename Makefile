@@ -43,24 +43,24 @@ IQ_DIR := data/raw/fpga/iq
 IQ_I_FILES := $(shell find $(IQ_DIR) -name "*_i.data")
 PAIR_IDS := $(notdir $(basename $(patsubst %_i.data,%,$(IQ_I_FILES))))
 
-MEDIAN_PLOTS := $(patsubst %, results/fpga_spectrum/median/filter_spectrum_median_%.png, $(PAIR_IDS))
-CSD_PLOTS := $(patsubst %, results/fpga_spectrum/csd/filter_spectrum_csd_%.png, $(PAIR_IDS))
-COHERENCE_PLOTS := $(patsubst %, results/fpga_spectrum/coherence/filter_spectrum_coherence_%.png, $(PAIR_IDS))
+MEDIAN_PLOTS := $(patsubst %, results/fpga_spectrum/median/%.png, $(PAIR_IDS))
+CSD_PLOTS := $(patsubst %, results/fpga_spectrum/csd/%.png, $(PAIR_IDS))
+COHERENCE_PLOTS := $(patsubst %, results/fpga_spectrum/coherence/%.png, $(PAIR_IDS))
 
 WINDOW ?= hamming
 FPGA_FLAGS := --window $(WINDOW)
 
-results/fpga_spectrum/median/filter_spectrum_median_%.png: $(IQ_DIR)/%_i.data $(IQ_DIR)/%_q.data scripts/fpga_analyze_spectrum.py
+results/fpga_spectrum/median/%.png: $(IQ_DIR)/%_i.data $(IQ_DIR)/%_q.data scripts/fpga_analyze_spectrum.py
 	@mkdir -p $(dir $@)
-	$(PYTHON) scripts/fpga_analyze_spectrum.py --method median --pair $* --out-dir $(dir $@) $(FPGA_FLAGS)
+	$(PYTHON) scripts/fpga_analyze_spectrum.py --method median --pair $* --out $@ $(FPGA_FLAGS)
 
-results/fpga_spectrum/csd/filter_spectrum_csd_%.png: $(IQ_DIR)/%_i.data $(IQ_DIR)/%_q.data scripts/fpga_analyze_spectrum.py
+results/fpga_spectrum/csd/%.png: $(IQ_DIR)/%_i.data $(IQ_DIR)/%_q.data scripts/fpga_analyze_spectrum.py
 	@mkdir -p $(dir $@)
-	$(PYTHON) scripts/fpga_analyze_spectrum.py --method csd --pair $* --out-dir $(dir $@) $(FPGA_FLAGS)
+	$(PYTHON) scripts/fpga_analyze_spectrum.py --method csd --pair $* --out $@ $(FPGA_FLAGS)
 
-results/fpga_spectrum/coherence/filter_spectrum_coherence_%.png: $(IQ_DIR)/%_i.data $(IQ_DIR)/%_q.data scripts/fpga_analyze_spectrum.py
+results/fpga_spectrum/coherence/%.png: $(IQ_DIR)/%_i.data $(IQ_DIR)/%_q.data scripts/fpga_analyze_spectrum.py
 	@mkdir -p $(dir $@)
-	$(PYTHON) scripts/fpga_analyze_spectrum.py --method coherence --pair $* --out-dir $(dir $@) $(FPGA_FLAGS)
+	$(PYTHON) scripts/fpga_analyze_spectrum.py --method coherence --pair $* --out $@ $(FPGA_FLAGS)
 
 .PHONY: fpga-analyze-median
 fpga-analyze-median: $(MEDIAN_PLOTS) ## Run FPGA median IIR filter spectrum analysis

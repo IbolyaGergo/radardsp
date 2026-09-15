@@ -27,7 +27,6 @@ class FPGASpectrumResult:
 
 def plot_magnitude_spectrum(ax, results_list, pair_id):
     """Plot theoretical response and one or more empirical magnitude curves."""
-    # Plot theoretical response once (from the first result)
     base = results_list[0]
     ax.plot(
         base.freqs,
@@ -38,7 +37,6 @@ def plot_magnitude_spectrum(ax, results_list, pair_id):
         linestyle="--",
     )
 
-    # Overlay empirical curves for each window
     colors = plt.cm.tab10(np.linspace(0, 1, len(results_list)))
     for res, color in zip(results_list, colors):
         ax.plot(
@@ -109,7 +107,7 @@ ANALYSIS_METHODS = {
 }
 
 
-def plot_result(results_list, method: str, pair_id: str, out_dir: Path | None):
+def plot_result(results_list, method: str, pair_id: str, out_file: Path | None):
     config = ANALYSIS_METHODS[method]
     plt.figure(figsize=(9, 5))
     ax = plt.gca()
@@ -122,17 +120,16 @@ def plot_result(results_list, method: str, pair_id: str, out_dir: Path | None):
     ax.grid(True, which="both", linestyle=":", alpha=0.7)
     plt.tight_layout()
 
-    if out_dir is not None:
-        out_dir.mkdir(parents=True, exist_ok=True)
-        plot_path = out_dir / f"{config['filename_prefix']}_{pair_id}.png"
-        plt.savefig(plot_path)
+    if out_file is not None:
+        out_file.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(out_file)
         plt.close()
-        print(f"  Saved plot to {plot_path}")
+        print(f"  Saved plot to {out_file}")
     else:
         plt.show()
 
 
-def process_pair(pair_id, i_path, q_path, method, window_names, out_dir):
+def process_pair(pair_id, i_path, q_path, method, window_names, out_file):
     try:
         x, y = load_fpga_ram_binary_to_iq(i_path, q_path, offset_dtype=512, n_pulse=14)
         b, a = load_filter_coeffs_from_binary(i_path)
@@ -158,7 +155,7 @@ def process_pair(pair_id, i_path, q_path, method, window_names, out_dir):
             )
         )
 
-    plot_result(results_to_plot, method, pair_id, out_dir)
+    plot_result(results_to_plot, method, pair_id, out_file)
 
 
 def main():
@@ -167,8 +164,17 @@ def main():
     parser.add_argument(
         "--method", choices=list(ANALYSIS_METHODS.keys()), default="median", help="Analysis method"
     )
-    parser.add_argument("--pair", default=None, help="Specific pair ID to process (e.g. 004)")
-    parser.add_argument("--out-dir", default=None, help="Output directory for plots")
+    parser.add_argument(
+        "--pair",
+        default="000",
+        help="Pair ID to process (default: 000)",
+    )
+    parser.add_argument(
+        "--out",
+        type=Path,
+        default=None,
+        help="Output file path for the plot. If not specified, displays interactively.",
+    )
     parser.add_argument(
         "--window",
         nargs="+",
@@ -179,31 +185,14 @@ def main():
     args = parser.parse_args()
 
     data_dir = Path(args.dir)
-    out_dir = Path(args.out_dir) if args.out_dir else None
 
-    if args.pair:
-        i_path = data_dir / f"{args.pair}_i.data"
-        q_path = data_dir / f"{args.pair}_q.data"
-        if not i_path.exists() or not q_path.exists():
-            print(f"Error: Pair {args.pair} files not found in {data_dir}")
-            return
-        print(f"Processing single pair: {args.pair} (method: {args.method})...")
-        process_pair(args.pair, i_path, q_path, args.method, args.window, out_dir)
-    else:
-        try:
-            pairs = find_iq_pairs(data_dir)
-        except FileNotFoundError as e:
-            print(f"Error: {e}")
-            return
-        if not pairs:
-            print(f"No IQ pairs found in {data_dir}")
-            return
-        print(f"Found {len(pairs)} IQ pair(s). Processing method: {args.method}...")
-        for pair_id, i_path, q_path in pairs:
-            print(f"Processing pair: {pair_id}...")
-            process_pair(pair_id, i_path, q_path, args.method, out_dir)
-
-    print("Analysis complete.")
+    i_path = data_dir / f"{args.pair}_i.data"
+    q_path = data_dir / f"{args.pair}_q.data"
+    if not i_path.exists() or not q_path.exists():
+        print(f"Error: Pair {args.pair} files not found in {data_dir}")
+        return
+    print(f"Processing single pair: {args.pair} (method: {args.method})...")
+    process_pair(args.pair, i_path, q_path, args.method, args.window, args.out)
 
 
 if __name__ == "__main__":
