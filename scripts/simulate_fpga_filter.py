@@ -21,15 +21,10 @@ def main():
         help="IQ pair ID to load coefficients from (default: 000)",
     )
     parser.add_argument(
-        "--out-dir",
+        "--out",
         type=Path,
         default=None,
-        help="Directory to save output plots. If not specified, outputs are not saved.",
-    )
-    parser.add_argument(
-        "--show",
-        action="store_true",
-        help="Display the plot interactively.",
+        help="Output file path for the plot. If not specified, displays interactively.",
     )
     args = parser.parse_args()
 
@@ -100,13 +95,11 @@ def main():
     ax.legend(loc="upper right")
     fig.tight_layout()
 
-    if args.out_dir is not None:
-        args.out_dir.mkdir(parents=True, exist_ok=True)
-        plot_path = args.out_dir / f"simulate_response_{args.pair}.png"
-        fig.savefig(plot_path)
-        print(f"Saved plot to {plot_path}")
-
-    if args.show or args.out_dir is None:
+    if args.out is not None:
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(args.out)
+        print(f"Saved plot to {args.out}")
+    else:
         plt.show()
 
     plt.close(fig)

@@ -90,11 +90,11 @@ fpga-analyze-filter-residuals: $(RESIDUALS_CSVS) ## Run FPGA filter difference e
 
 # --- FPGA Simulation ---
 SIMULATE_OUT_DIR := results/fpga_simulate
-SIMULATE_PLOTS := $(patsubst %, $(SIMULATE_OUT_DIR)/simulate_response_%.png, $(PAIR_IDS))
+SIMULATE_PLOTS := $(patsubst %, $(SIMULATE_OUT_DIR)/%.png, $(PAIR_IDS))
 
-$(SIMULATE_OUT_DIR)/simulate_response_%.png: $(IQ_DIR)/%_i.data scripts/simulate_fpga_filter.py
+$(SIMULATE_OUT_DIR)/%.png: $(IQ_DIR)/%_i.data scripts/simulate_fpga_filter.py
 	@mkdir -p $(dir $@)
-	$(PYTHON) scripts/simulate_fpga_filter.py --pair $* --out-dir $(dir $@)
+	$(PYTHON) scripts/simulate_fpga_filter.py --pair $* --out $@
 
 .PHONY: fpga-simulate-response-all
 fpga-simulate-response-all: $(SIMULATE_PLOTS) ## Run FPGA filter simulation response for all pairs
