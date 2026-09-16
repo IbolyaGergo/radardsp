@@ -3,11 +3,13 @@ from scipy.signal import lfilter
 from typing import Dict, Any, Optional
 
 
+# _apply_filter() {{{1
 def _apply_filter(data: np.ndarray, filt: Filter) -> np.ndarray:
     """Private helper to apply a filter to data."""
     return lfilter(filt.b, filt.a, data)
 
 
+# _downsample() {{{1
 def _downsample(data: np.ndarray, factor: int) -> np.ndarray:
     """Private helper to downsample data along the sample dimension."""
     if data.ndim == 1:
@@ -15,6 +17,7 @@ def _downsample(data: np.ndarray, factor: int) -> np.ndarray:
     return data[:, ::factor]
 
 
+# compute_pulse_phase_difference() {{{1
 def compute_pulse_phase_difference(iq_data: np.ndarray) -> np.ndarray:
     """
     Computes the phase difference between consecutive pulses for each range bin.
@@ -28,6 +31,7 @@ def compute_pulse_phase_difference(iq_data: np.ndarray) -> np.ndarray:
     return np.angle(iq_data[:, :-1] * np.conj(iq_data[:, 1:]))
 
 
+# compute_mean_phase_difference() {{{1
 def compute_mean_phase_difference(iq_data: np.ndarray) -> np.ndarray:
     """
     Computes the mean phase difference across pulses for each range bin
@@ -43,6 +47,7 @@ def compute_mean_phase_difference(iq_data: np.ndarray) -> np.ndarray:
     return np.angle(r1)
 
 
+# compute_signal_quality_index() {{{1
 def compute_signal_quality_index(iq_data: np.ndarray) -> np.ndarray:
     """
     Computes the Signal Quality Index (SQI) as the magnitude of the normalized
