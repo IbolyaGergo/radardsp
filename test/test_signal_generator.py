@@ -10,7 +10,6 @@ def test_compute_pulse_pair_variance():
     prf = 100.0
     fd = 15.0
     true_freq_variance = 9.0  # Hz^2
-    true_velocity_variance = 0.25 * true_freq_variance
 
     # Generate signal
     iq = generate_gaussian_doppler_signal(
@@ -23,4 +22,4 @@ def test_compute_pulse_pair_variance():
 
     # Estimate variance
     est_variance = compute_pulse_pair_variance(iq, prf=prf)
-    np.testing.assert_equal(est_variance, 2.1502659330558944)
+    np.testing.assert_equal(est_variance, 4.0 * 2.1502659330558944)

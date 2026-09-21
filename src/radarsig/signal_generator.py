@@ -60,15 +60,14 @@ def compute_pulse_pair_variance(iq: np.ndarray, wavelength: float = 1.0, prf: fl
     - prf: Pulse Repetition Frequency (Hz)
 
     Returns:
-    - estimated_variance: Estimated velocity variance (m^2 / s^2)
+    - estimated_variance: Estimated frequency variance
     """
-    tau = 1.0 / prf
 
     # Autocorrelation at lag 1 and lag 2
     r1 = np.mean(iq[:-1] * np.conj(iq[1:]))
     r2 = np.mean(iq[:-2] * np.conj(iq[2:]))
 
-    coeff = 2.0 / (3.0 * tau**2) * (wavelength / (4.0 * np.pi)) ** 2
+    coeff = prf**2 / (6.0 * np.pi**2)
 
     with np.errstate(divide="ignore", invalid="ignore"):
         variance = np.where(r2 == 0, 0.0, coeff * np.log(np.abs(r1 / r2)))
