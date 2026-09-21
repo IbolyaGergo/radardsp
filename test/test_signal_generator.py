@@ -18,7 +18,7 @@ def test_compute_pulse_pair_variance():
         n_pulses=n_pulses,
         prf=prf,
         fd=fd,
-        true_variance=true_freq_variance,
+        true_freq_variance=true_freq_variance,
         seed=42,
     )
 
@@ -40,7 +40,7 @@ def test_compute_pulse_pair_snr():
         n_pulses=n_pulses,
         prf=prf,
         fd=fd,
-        true_variance=true_freq_variance,
+        true_freq_variance=true_freq_variance,
         snr=true_snr,
         seed=42,
     )

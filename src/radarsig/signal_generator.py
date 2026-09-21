@@ -7,7 +7,7 @@ def generate_gaussian_doppler_signal(
     n_pulses: int,
     prf: float,
     fd: float,
-    true_variance: float,
+    true_freq_variance: float,
     wavelength: float = 1.0,
     snr: float | None = None,
     seed: int | None = None,
@@ -20,7 +20,7 @@ def generate_gaussian_doppler_signal(
     - n_pulses: Number of pulse samples
     - prf: Pulse Repetition Frequency (Hz)
     - fd: Mean Doppler frequency (Hz)
-    - true_variance: Frequency variance (Hz^2) of the Gaussian spectrum
+    - true_freq_variance: Frequency variance (Hz^2) of the Gaussian spectrum
     - wavelength: Radar wavelength (m), defaults to 1.0
     - snr: Signal To Noise ratio defined as S_0 / N, where S_0 is the signal power and N is the
       noise power
@@ -37,7 +37,7 @@ def generate_gaussian_doppler_signal(
     freqs = fftfreq(n_pulses, d=dt)
 
     # Desired Gaussian PSD centered at 0 Hz
-    psd = np.exp(-(freqs**2) / (2 * true_variance))
+    psd = np.exp(-(freqs**2) / (2 * true_freq_variance))
     s0_power = np.sum(psd)
 
     if snr is not None:
