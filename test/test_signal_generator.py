@@ -13,7 +13,7 @@ def test_compute_pulse_pair_variance():
     true_velocity_variance = 0.25 * true_freq_variance
 
     # Generate signal
-    freqs, iq = generate_gaussian_doppler_signal(
+    iq = generate_gaussian_doppler_signal(
         n_pulses=n_pulses,
         prf=prf,
         fd=fd,

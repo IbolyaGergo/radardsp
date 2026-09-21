@@ -9,7 +9,7 @@ def generate_gaussian_doppler_signal(
     true_variance: float,
     wavelength: float = 1.0,
     seed: int | None = None,
-) -> tuple[np.ndarray, np.ndarray]:
+) -> np.ndarray:
     """
     Generate a complex time-series (pulse returns) whose power spectral density
     is a Gaussian centered at Doppler frequency fd, with specified variance.
@@ -46,7 +46,7 @@ def generate_gaussian_doppler_signal(
     # Apply Doppler shift (moving target)
     iq = iq_base * np.exp(1j * 2 * np.pi * fd * t)
 
-    return freqs, iq
+    return iq
 
 
 def compute_pulse_pair_variance(iq: np.ndarray, wavelength: float = 1.0, prf: float = 1.0) -> float:
