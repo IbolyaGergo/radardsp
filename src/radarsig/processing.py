@@ -12,10 +12,8 @@ def _apply_filter(data: np.ndarray, filt: Filter) -> np.ndarray:
 
 # _downsample() {{{1
 def _downsample(data: np.ndarray, factor: int) -> np.ndarray:
-    """Private helper to downsample data along the sample dimension."""
-    if data.ndim == 1:
-        return data[::factor]
-    return data[:, ::factor]
+    """Private helper to downsample data along the sample dimension (axis=-1)."""
+    return data[..., ::factor]
 
 
 # compute_pulse_phase_difference() {{{1
@@ -24,12 +22,12 @@ def compute_pulse_phase_difference(iq_data: np.ndarray) -> np.ndarray:
     Computes the phase difference between consecutive pulses for each range bin.
 
     Parameters:
-        iq_data (np.ndarray): Complex IQ data of shape (n_range_bin, n_pulse)
+        iq_data (np.ndarray): Complex IQ data of shape (..., n_pulse)
 
     Returns:
-        np.ndarray: Phase differences of shape (n_range_bin, n_pulse - 1) in radians.
+        np.ndarray: Phase differences of shape (..., n_pulse - 1) in radians.
     """
-    return np.angle(iq_data[:, :-1] * np.conj(iq_data[:, 1:]))
+    return np.angle(iq_data[..., :-1] * np.conj(iq_data[..., 1:]))
 
 
 # compute_mean_phase_difference() {{{1
@@ -39,12 +37,12 @@ def compute_mean_phase_difference(iq_data: np.ndarray) -> np.ndarray:
     using the argument of the lag-1 autocorrelation.
 
     Parameters:
-        iq_data (np.ndarray): Complex IQ data of shape (n_range_bin, n_pulse)
+        iq_data (np.ndarray): Complex IQ data of shape (..., n_pulse)
 
     Returns:
-        np.ndarray: Mean phase difference of shape (n_range_bin,) in radians.
+        np.ndarray: Mean phase difference of shape (...,) in radians.
     """
-    r1 = np.mean(iq_data[:, :-1] * np.conj(iq_data[:, 1:]), axis=1)
+    r1 = np.mean(iq_data[..., :-1] * np.conj(iq_data[..., 1:]), axis=-1)
     return np.angle(r1)
 
 
@@ -55,13 +53,13 @@ def compute_signal_quality_index(iq_data: np.ndarray) -> np.ndarray:
     lag-1 autocorrelation coefficient for each range bin.
 
     Parameters:
-        iq_data (np.ndarray): Complex IQ data of shape (n_range_bin, n_pulse)
+        iq_data (np.ndarray): Complex IQ data of shape (..., n_pulse)
 
     Returns:
-        np.ndarray: SQI of shape (n_range_bin,) ranging from 0 to 1.
+        np.ndarray: SQI of shape (...,) ranging from 0 to 1.
     """
-    num = np.abs(np.mean(iq_data[:, :-1] * np.conj(iq_data[:, 1:]), axis=1))
-    den = np.abs(np.mean(iq_data * np.conj(iq_data), axis=1))
+    num = np.abs(np.mean(iq_data[..., :-1] * np.conj(iq_data[..., 1:]), axis=-1))
+    den = np.abs(np.mean(iq_data * np.conj(iq_data), axis=-1))
     with np.errstate(divide="ignore", invalid="ignore"):
         return np.where(den == 0, 0.0, num / den)
 
