@@ -24,7 +24,7 @@ def test_compute_pulse_pair_variance():
 
     # Estimate variance
     est_variance = compute_pulse_pair_variance(iq, prf=prf)
-    np.testing.assert_equal(est_variance, 4.0 * 2.1502659330558944)
+    np.testing.assert_allclose(est_variance, true_freq_variance, rtol=0.05)
 
 
 # test_compute_pulse_pair_snr() {{{1
