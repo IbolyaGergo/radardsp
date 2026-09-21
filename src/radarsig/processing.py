@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.signal import lfilter
+from scipy.fft import fft, fftfreq, fftshift
 from typing import Dict, Any, Optional
 
 
@@ -63,3 +64,33 @@ def compute_signal_quality_index(iq_data: np.ndarray) -> np.ndarray:
     den = np.abs(np.mean(iq_data * np.conj(iq_data), axis=1))
     with np.errstate(divide="ignore", invalid="ignore"):
         return np.where(den == 0, 0.0, num / den)
+
+
+# compute_fft() {{{1
+def compute_fft(
+    x: np.ndarray,
+    fft_len: Optional[int] = None,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Compute the shifted FFT spectrum of a complex signal
+    (1D or 2D) using a Hamming window.
+
+    Parameters:
+        x (np.ndarray): Complex input signal of shape (n_samples,) or (n_bins, n_samples).
+        fft_len (int, optional): FFT length. Defaults to x.shape[-1].
+
+    Returns:
+        tuple[np.ndarray, np.ndarray]:
+            - freqs: Shifted frequency array of shape (fft_len,)
+            - spectrum: Shifted FFT spectrum
+    """
+    if fft_len is None:
+        fft_len = x.shape[-1]
+
+    window = np.hamming(x.shape[-1])
+    x_win = x * window
+
+    x_fft = fftshift(fft(x_win, n=fft_len, axis=-1), axes=-1)
+    freqs = fftshift(fftfreq(fft_len))
+
+    return freqs, x_fft
