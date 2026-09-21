@@ -10,6 +10,7 @@ from radarsig.processing import (
 from radarsig.signal_generator import generate_gaussian_doppler_signal
 
 
+# test_compute_pulse_phase_difference_shape() {{{1
 def test_compute_pulse_phase_difference_shape():
     n_range = 3
     n_pulse = 10
@@ -20,6 +21,7 @@ def test_compute_pulse_phase_difference_shape():
     assert isinstance(delta_phi, np.ndarray)
 
 
+# test_compute_pulse_phase_difference_values() {{{1
 def test_compute_pulse_phase_difference_values():
     # Test with known constant phase progression (e.g. delta = pi/4 per pulse)
     n_range = 1
@@ -35,6 +37,7 @@ def test_compute_pulse_phase_difference_values():
     np.testing.assert_allclose(delta_phi, expected, atol=1e-7)
 
 
+# test_compute_mean_phase_difference() {{{1
 def test_compute_mean_phase_difference():
     n_range = 1
     n_pulse = 5
@@ -48,6 +51,7 @@ def test_compute_mean_phase_difference():
     np.testing.assert_allclose(mean_phi, [-delta], atol=1e-7)
 
 
+# test_compute_signal_quality_index() {{{1
 def test_compute_signal_quality_index():
     n_range = 1
     n_pulse = 5
