@@ -64,6 +64,49 @@ def compute_signal_quality_index(iq_data: np.ndarray) -> np.ndarray:
         return np.where(den == 0, 0.0, num / den)
 
 
+# compute_pulse_pair_variance() {{{1
+def compute_pulse_pair_variance(iq: np.ndarray, wavelength: float = 1.0, prf: float = 1.0) -> float:
+    """
+    Estimate velocity variance from complex pulse returns using lag-1 and lag-2
+    autocorrelation pulse-pair method.
+
+    Parameters:
+    - iq: Complex time-series array of pulse returns
+    - wavelength: Radar wavelength (m)
+    - prf: Pulse Repetition Frequency (Hz)
+
+    Returns:
+    - estimated_variance: Estimated frequency variance
+    """
+
+    # Autocorrelation at lag 1 and lag 2
+    r1 = np.mean(iq[..., :-1] * np.conj(iq[..., 1:]), axis=-1)
+    r2 = np.mean(iq[..., :-2] * np.conj(iq[..., 2:]), axis=-1)
+
+    coeff = prf**2 / (6.0 * np.pi**2)
+
+    with np.errstate(divide="ignore", invalid="ignore"):
+        variance = np.where(r2 == 0, 0.0, coeff * np.log(np.abs(r1 / r2)))
+
+    return variance
+
+
+# compute_pulse_pair_snr() {{{1
+def compute_pulse_pair_snr(iq: np.ndarray) -> float:
+    # Autocorrelation at lag 0, 1 and 2
+    r0 = np.mean(iq * np.conj(iq), axis=-1)
+    r1 = np.mean(iq[..., :-1] * np.conj(iq[..., 1:]), axis=-1)
+    r2 = np.mean(iq[..., :-2] * np.conj(iq[..., 2:]), axis=-1)
+
+    nom = np.power(np.abs(r1), 4.0 / 3.0)
+    denom = r0 * np.power(np.abs(r2), 1.0 / 3.0) - np.power(np.abs(r1), 4.0 / 3.0)
+
+    with np.errstate(divide="ignore", invalid="ignore"):
+        snr = np.where(denom == 0, 0.0, np.abs(nom / denom))
+
+    return snr
+
+
 # compute_fft() {{{1
 def compute_fft(
     x: np.ndarray,
