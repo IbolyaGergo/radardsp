@@ -30,20 +30,22 @@ def compute_pulse_phase_difference(iq_data: np.ndarray) -> np.ndarray:
     return np.angle(iq_data[..., :-1] * np.conj(iq_data[..., 1:]))
 
 
-# compute_mean_phase_difference() {{{1
-def compute_mean_phase_difference(iq_data: np.ndarray) -> np.ndarray:
+# compute_pulse_pair_mean() {{{1
+def compute_pulse_pair_mean(iq_data: np.ndarray, prf: float) -> np.ndarray:
     """
-    Computes the mean phase difference across pulses for each range bin
-    using the argument of the lag-1 autocorrelation.
+    Estimate frequency mean from complex pulse returns using lag-1 autocorrelation pulse-pair
+    method.
 
     Parameters:
         iq_data (np.ndarray): Complex IQ data of shape (..., n_pulse)
+        prf: Pulse Repetition Frequency (Hz)
 
     Returns:
-        np.ndarray: Mean phase difference of shape (...,) in radians.
+        estimated_mean: Estimated frequency mean
     """
+    coeff = prf / (2.0 * np.pi)
     r1 = np.mean(iq_data[..., :-1] * np.conj(iq_data[..., 1:]), axis=-1)
-    return np.angle(r1)
+    return coeff * np.angle(r1)
 
 
 # compute_signal_quality_index() {{{1
@@ -67,7 +69,7 @@ def compute_signal_quality_index(iq_data: np.ndarray) -> np.ndarray:
 # compute_pulse_pair_variance() {{{1
 def compute_pulse_pair_variance(iq: np.ndarray, prf: float) -> float:
     """
-    Estimate velocity variance from complex pulse returns using lag-1 and lag-2
+    Estimate frequency variance from complex pulse returns using lag-1 and lag-2
     autocorrelation pulse-pair method.
 
     Parameters:
