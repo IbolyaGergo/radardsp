@@ -8,7 +8,6 @@ def generate_gaussian_doppler_signal(
     prf: float,
     fd: float,
     true_freq_variance: float,
-    wavelength: float = 1.0,
     snr: float | None = None,
     seed: int | None = None,
 ) -> np.ndarray:
@@ -21,7 +20,6 @@ def generate_gaussian_doppler_signal(
     - prf: Pulse Repetition Frequency (Hz)
     - fd: Mean Doppler frequency (Hz)
     - true_freq_variance: Frequency variance (Hz^2) of the Gaussian spectrum
-    - wavelength: Radar wavelength (m), defaults to 1.0
     - snr: Signal To Noise ratio defined as S_0 / N, where S_0 is the signal power and N is the
       noise power
     - seed: Random seed for reproducibility (optional)
