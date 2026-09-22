@@ -65,7 +65,7 @@ def compute_signal_quality_index(iq_data: np.ndarray) -> np.ndarray:
 
 
 # compute_pulse_pair_variance() {{{1
-def compute_pulse_pair_variance(iq: np.ndarray, prf: float = 1.0) -> float:
+def compute_pulse_pair_variance(iq: np.ndarray, prf: float) -> float:
     """
     Estimate velocity variance from complex pulse returns using lag-1 and lag-2
     autocorrelation pulse-pair method.
