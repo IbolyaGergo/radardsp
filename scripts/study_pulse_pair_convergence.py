@@ -48,7 +48,7 @@ def run_monte_carlo(
 
         est = estimator_func(iq, prf=prf)
         if estimator_type == "width":
-            est = np.sqrt(est)
+            est = np.sqrt(np.maximum(0.0, est))
         estimates.append(est)
 
     mean_est = np.mean(estimates)
