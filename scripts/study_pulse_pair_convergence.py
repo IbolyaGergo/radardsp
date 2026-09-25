@@ -60,6 +60,12 @@ def main():
         help="Estimator type to study (mean or std)",
     )
     parser.add_argument(
+        "--metric",
+        choices=["bias", "std"],
+        default="std",
+        help="Metric to plot (bias or std)",
+    )
+    parser.add_argument(
         "--out",
         type=Path,
         default=None,
@@ -83,8 +89,6 @@ def main():
 
     print(f"Running pulse-pair estimator convergence study for estimator: {args.estimator}...")
     for n_pulses in N_PULSES_LIST:
-        df = PRF / n_pulses
-
         mean_est, std_est = run_monte_carlo(
             n_pulses=n_pulses,
             prf=PRF,
@@ -110,36 +114,45 @@ def main():
     fig, ax = plt.subplots(figsize=(9, 6))
 
     n_pulses_arr = np.array([r["n_pulses"] for r in results])
-    norm_bias_arr = np.array([r["norm_bias"] for r in results])
-    norm_std_arr = np.array([r["norm_std"] for r in results])
 
-    ax.plot(
-        n_pulses_arr,
-        norm_bias_arr,
-        marker="o",
-        linestyle="-",
-        color="b",
-        markersize=3,
-        label=f"Normalized Bias",
-    )
+    if args.metric == "std":
+        norm_std_arr = np.array([r["norm_std"] for r in results])
+        ax.plot(
+            n_pulses_arr,
+            norm_std_arr,
+            marker="o",
+            linestyle="--",
+            color="g",
+            markersize=3,
+            label="Normalized Standard Deviation",
+        )
+        metric_title_part = "Normalized Standard Deviation"
+    elif args.metric == "bias":
+        norm_bias_arr = np.array([r["norm_bias"] for r in results])
+        ax.plot(
+            n_pulses_arr,
+            norm_bias_arr,
+            marker="o",
+            linestyle="-",
+            color="b",
+            markersize=3,
+            label="Normalized Bias",
+        )
+        metric_title_part = "Normalized Bias"
+    else:
+        raise ValueError(f"Unknown metric: {args.metric}")
 
-    ax.plot(
-        n_pulses_arr,
-        norm_std_arr,
-        marker="o",
-        linestyle="--",
-        color="g",
-        markersize=3,
-        label=f"Normalized Standard Deviation",
-    )
     ax.plot(
         n_pulses_arr,
         1.0 / np.sqrt(n_pulses_arr),
         label=r"$\frac{1}{\sqrt{\text{Number of Pulses}}}$",
+        color="k",
+        linestyle=":",
     )
 
     ax.set_xlabel("Number of Pulses", fontsize=12)
-    ax.set_title(title, fontsize=12)
+    ax.set_ylabel(metric_title_part, fontsize=12)
+    ax.set_title(f"{title} ({metric_title_part})", fontsize=12)
     ax.set_xscale("log")
     ax.set_yscale("log")
     ax.grid(True, which="both", linestyle=":", alpha=0.6)
@@ -152,6 +165,10 @@ def main():
         plt.close()
         print(f"\nPlot saved to {args.out}")
     else:
+        output_path = Path(f"pulse_pair_{args.estimator}_{args.metric}_convergence_study.png")
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(output_path, dpi=300)
+        print(f"\nPlot saved to {output_path}")
         plt.show()
 
 
