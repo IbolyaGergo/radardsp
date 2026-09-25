@@ -23,6 +23,7 @@ def run_monte_carlo(
     prf: float,
     estimator_func,
     estimator_type: str,
+    snr: float | None,
     n_mc: int,
 ) -> tuple[float, float]:
     """
@@ -30,13 +31,18 @@ def run_monte_carlo(
     of the Doppler property estimator for a given number of pulses.
     """
     estimates = []
+    if snr is None or np.isinf(snr):
+        linear_snr = None
+    else:
+        linear_snr = 10 ** (snr / 10.0)
+
     for i in range(n_mc):
         iq = generate_gaussian_doppler_signal(
             n_pulses=n_pulses,
             prf=prf,
             fd=TRUE_MEAN,
             true_freq_variance=(TRUE_STD) ** 2,
-            snr=None,
+            snr=linear_snr,
             seed=i,
         )
 
@@ -71,6 +77,14 @@ def main():
         default=None,
         help="Output file path for the plot. If not specified, displays interactively.",
     )
+    parser.add_argument(
+        "--snr",
+        nargs="+",
+        type=float,
+        default=[float("inf"), 20.0, 10.0],
+        help="SNR values in dB to simulate (use inf for noise-free)",
+    )
+
     args = parser.parse_args()
 
     # Estimator-specific setup
@@ -88,66 +102,62 @@ def main():
     results = []
 
     print(f"Running pulse-pair estimator convergence study for estimator: {args.estimator}...")
-    for n_pulses in N_PULSES_LIST:
-        mean_est, std_est = run_monte_carlo(
-            n_pulses=n_pulses,
-            prf=PRF,
-            estimator_func=estimator_func,
-            estimator_type=args.estimator,
-            n_mc=N_MC,
-        )
 
-        norm_bias = np.abs(mean_est - true_value) / PRF
-        norm_std = std_est / PRF
-
-        results.append(
-            {
-                "n_pulses": n_pulses,
-                "mean_est": mean_est,
-                "std_est": std_est,
-                "norm_bias": norm_bias,
-                "norm_std": norm_std,
-            }
-        )
-
-    # Plotting results using object-oriented matplotlib API
     fig, ax = plt.subplots(figsize=(9, 6))
+    colors = plt.cm.viridis(np.linspace(0.1, 0.9, len(args.snr)))
 
-    n_pulses_arr = np.array([r["n_pulses"] for r in results])
+    for snr, color in zip(args.snr, colors):
+        results = []
+        snr_label = "Noise-Free" if np.isinf(snr) else f"{snr} dB"
+        print(f"Running study for SNR: {snr_label}...")
 
-    if args.metric == "std":
-        norm_std_arr = np.array([r["norm_std"] for r in results])
-        ax.plot(
-            n_pulses_arr,
-            norm_std_arr,
-            marker="o",
-            linestyle="--",
-            color="g",
-            markersize=3,
-            label="Normalized Standard Deviation",
+        for n_pulses in N_PULSES_LIST:
+            mean_est, std_est = run_monte_carlo(
+                n_pulses=n_pulses,
+                prf=PRF,
+                estimator_func=estimator_func,
+                estimator_type=args.estimator,
+                snr=snr,
+                n_mc=N_MC,
+            )
+            norm_bias = np.abs(mean_est - true_value) / PRF
+            norm_std = std_est / PRF
+            results.append(
+                {
+                    "n_pulses": n_pulses,
+                    "norm_bias": norm_bias,
+                    "norm_std": norm_std,
+                }
+            )
+
+        n_pulses_arr = np.array([r["n_pulses"] for r in results])
+        y_arr = np.array(
+            [r["norm_std"] if args.metric == "std" else r["norm_bias"] for r in results]
         )
-        metric_title_part = "Normalized Standard Deviation"
-    elif args.metric == "bias":
-        norm_bias_arr = np.array([r["norm_bias"] for r in results])
+
         ax.plot(
             n_pulses_arr,
-            norm_bias_arr,
+            y_arr,
             marker="o",
             linestyle="-",
-            color="b",
+            color=color,
             markersize=3,
-            label="Normalized Bias",
+            label=f"SNR: {snr_label}",
         )
-        metric_title_part = "Normalized Bias"
-    else:
-        raise ValueError(f"Unknown metric: {args.metric}")
 
-    ax.plot(
-        n_pulses_arr,
-        1.0 / np.sqrt(n_pulses_arr),
-        label=r"$\frac{1}{\sqrt{\text{Number of Pulses}}}$",
-        color="k",
-        linestyle=":",
+    # Optional: Plot theoretical 1/sqrt(N) reference for std metric
+    if args.metric == "std":
+        ax.plot(
+            N_PULSES_LIST,
+            1.0 / np.sqrt(N_PULSES_LIST),
+            label=r"$\frac{1}{\sqrt{\text{Number of Pulses}}}$ (Theory)",
+            color="black",
+            linestyle=":",
+            linewidth=1.5,
+        )
+
+    metric_title_part = (
+        "Normalized Standard Deviation" if args.metric == "std" else "Normalized Bias"
     )
 
     ax.set_xlabel("Number of Pulses", fontsize=12)
