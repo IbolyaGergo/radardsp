@@ -41,7 +41,7 @@ def run_monte_carlo(
         )
 
         est = estimator_func(iq, prf=prf)
-        if estimator_type == "std":
+        if estimator_type == "width":
             est = np.sqrt(est)
         estimates.append(est)
 
@@ -55,9 +55,9 @@ def main():
     parser = argparse.ArgumentParser(description="Study pulse-pair estimator convergence.")
     parser.add_argument(
         "--estimator",
-        choices=["mean", "std"],
-        default="std",
-        help="Estimator type to study (mean or std)",
+        choices=["mean", "width"],
+        default="width",
+        help="Estimator type to study (mean or width)",
     )
     parser.add_argument(
         "--metric",
@@ -74,7 +74,7 @@ def main():
     args = parser.parse_args()
 
     # Estimator-specific setup
-    if args.estimator == "std":
+    if args.estimator == "width":
         true_value = TRUE_STD
         estimator_func = compute_pulse_pair_variance
         title = "Pulse-Pair Spectral Width Estimator Convergence"
