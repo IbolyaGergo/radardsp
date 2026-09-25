@@ -7,18 +7,21 @@ from radarsig.processing import compute_pulse_pair_mean, compute_pulse_pair_vari
 # ==========================================
 # CONFIGURATION
 # ==========================================
-DOPPLER_PROPERTY = "mean"  # Options: "variance" or "mean"
+DOPPLER_PROPERTY = "std"  # Options: "std" or "mean"
 PRF = 2000.0
-N_MC = 200
+N_MC = 200  # number of Monte Carlo runs
 N_PULSES_LIST = np.arange(10, 1001, 10)
 
+TRUE_STD = PRF / 10.0
+TRUE_MEAN = 0.0
+
 # Property-specific setup
-if DOPPLER_PROPERTY == "variance":
-    TRUE_VALUE = (PRF / 10.0) ** 2  # 40,000.0 Hz^2
+if DOPPLER_PROPERTY == "std":
+    TRUE_VALUE = TRUE_STD
     ESTIMATOR_FUNC = compute_pulse_pair_variance
-    TITLE = "Pulse-Pair Variance Estimator Convergence"
+    TITLE = "Pulse-Pair Spectral Width Estimator Convergence"
 elif DOPPLER_PROPERTY == "mean":
-    TRUE_VALUE = 0.0  # fd = 0.0 Hz
+    TRUE_VALUE = TRUE_MEAN
     ESTIMATOR_FUNC = compute_pulse_pair_mean
     TITLE = "Pulse-Pair Mean Estimator Convergence"
 else:
@@ -41,12 +44,15 @@ def run_monte_carlo(
         iq = generate_gaussian_doppler_signal(
             n_pulses=n_pulses,
             prf=prf,
-            fd=0.0,
-            true_freq_variance=(prf / 10.0) ** 2,
+            fd=TRUE_MEAN,
+            true_freq_variance=(TRUE_STD) ** 2,
             snr=None,
             seed=i,
         )
+
         est = estimator_func(iq, prf=prf)
+        if DOPPLER_PROPERTY == "std":
+            est = np.sqrt(est)
         estimates.append(est)
 
     mean_est = np.mean(estimates)
@@ -69,12 +75,8 @@ def main():
             n_mc=N_MC,
         )
 
-        if DOPPLER_PROPERTY == "variance":
-            rel_bias = np.abs(mean_est - TRUE_VALUE) / PRF**2
-            rel_std = std_est / PRF**2
-        else:
-            rel_bias = np.abs(mean_est - TRUE_VALUE) / PRF
-            rel_std = std_est / PRF
+        rel_bias = np.abs(mean_est - TRUE_VALUE) / PRF
+        rel_std = std_est / PRF
 
         results.append(
             {
