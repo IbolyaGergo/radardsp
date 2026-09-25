@@ -7,7 +7,7 @@ from radarsig.processing import compute_pulse_pair_mean, compute_pulse_pair_vari
 # ==========================================
 # CONFIGURATION
 # ==========================================
-DOPPLER_PROPERTY = "std"  # Options: "std" or "mean"
+DOPPLER_PROPERTY = "mean"  # Options: "std" or "mean"
 PRF = 2000.0
 N_MC = 200  # number of Monte Carlo runs
 N_PULSES_LIST = np.arange(10, 1001, 10)
@@ -75,16 +75,16 @@ def main():
             n_mc=N_MC,
         )
 
-        rel_bias = np.abs(mean_est - TRUE_VALUE) / PRF
-        rel_std = std_est / PRF
+        norm_bias = np.abs(mean_est - TRUE_VALUE) / PRF
+        norm_std = std_est / PRF
 
         results.append(
             {
                 "n_pulses": n_pulses,
                 "mean_est": mean_est,
                 "std_est": std_est,
-                "rel_bias": rel_bias,
-                "rel_std": rel_std,
+                "norm_bias": norm_bias,
+                "norm_std": norm_std,
             }
         )
 
@@ -92,12 +92,12 @@ def main():
     fig, ax = plt.subplots(figsize=(9, 6))
 
     n_pulses_arr = np.array([r["n_pulses"] for r in results])
-    rel_bias_arr = np.array([r["rel_bias"] for r in results])
-    rel_std_arr = np.array([r["rel_std"] for r in results])
+    norm_bias_arr = np.array([r["norm_bias"] for r in results])
+    norm_std_arr = np.array([r["norm_std"] for r in results])
 
     ax.plot(
         n_pulses_arr,
-        rel_bias_arr,
+        norm_bias_arr,
         marker="o",
         linestyle="-",
         color="b",
@@ -107,7 +107,7 @@ def main():
 
     ax.plot(
         n_pulses_arr,
-        rel_std_arr,
+        norm_std_arr,
         marker="o",
         linestyle="--",
         color="g",
