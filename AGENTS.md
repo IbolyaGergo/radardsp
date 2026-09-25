@@ -17,6 +17,7 @@ Read *.md
 
 ## Execution
 - **Validation**: When proposing changes, outline how they can be verified.
+- **Autonomous Execution Limits**: Never execute verification commands (such as running tests or scripts via bash) autonomously. Always outline verification steps for the user to execute instead.
 
 ## Development Methodology
 - **Incrementalism**: Always decompose tasks into atomic, verifiable steps. Discuss and verify one step at a time.
