@@ -1,13 +1,14 @@
 #! /usr/bin/env python3
+import argparse
+from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 from radarsig.signal_generator import generate_gaussian_doppler_signal
 from radarsig.processing import compute_pulse_pair_mean, compute_pulse_pair_variance
 
 # ==========================================
-# CONFIGURATION
+# CONFIGURATION CONSTANTS
 # ==========================================
-DOPPLER_PROPERTY = "mean"  # Options: "std" or "mean"
 PRF = 2000.0
 N_MC = 200  # number of Monte Carlo runs
 N_PULSES_LIST = np.arange(10, 1001, 10)
@@ -15,24 +16,13 @@ N_PULSES_LIST = np.arange(10, 1001, 10)
 TRUE_STD = PRF / 10.0
 TRUE_MEAN = 0.0
 
-# Property-specific setup
-if DOPPLER_PROPERTY == "std":
-    TRUE_VALUE = TRUE_STD
-    ESTIMATOR_FUNC = compute_pulse_pair_variance
-    TITLE = "Pulse-Pair Spectral Width Estimator Convergence"
-elif DOPPLER_PROPERTY == "mean":
-    TRUE_VALUE = TRUE_MEAN
-    ESTIMATOR_FUNC = compute_pulse_pair_mean
-    TITLE = "Pulse-Pair Mean Estimator Convergence"
-else:
-    raise ValueError(f"Unknown DOPPLER_PROPERTY: {DOPPLER_PROPERTY}")
-
 
 # run_monte_carlo() {{{1
 def run_monte_carlo(
     n_pulses: int,
     prf: float,
     estimator_func,
+    estimator_type: str,
     n_mc: int,
 ) -> tuple[float, float]:
     """
@@ -51,7 +41,7 @@ def run_monte_carlo(
         )
 
         est = estimator_func(iq, prf=prf)
-        if DOPPLER_PROPERTY == "std":
+        if estimator_type == "std":
             est = np.sqrt(est)
         estimates.append(est)
 
@@ -62,20 +52,48 @@ def run_monte_carlo(
 
 # main() {{{1
 def main():
+    parser = argparse.ArgumentParser(description="Study pulse-pair estimator convergence.")
+    parser.add_argument(
+        "--estimator",
+        choices=["mean", "std"],
+        default="std",
+        help="Estimator type to study (mean or std)",
+    )
+    parser.add_argument(
+        "--out",
+        type=Path,
+        default=None,
+        help="Output file path for the plot. If not specified, displays interactively.",
+    )
+    args = parser.parse_args()
+
+    # Estimator-specific setup
+    if args.estimator == "std":
+        true_value = TRUE_STD
+        estimator_func = compute_pulse_pair_variance
+        title = "Pulse-Pair Spectral Width Estimator Convergence"
+    elif args.estimator == "mean":
+        true_value = TRUE_MEAN
+        estimator_func = compute_pulse_pair_mean
+        title = "Pulse-Pair Mean Estimator Convergence"
+    else:
+        raise ValueError(f"Unknown estimator: {args.estimator}")
+
     results = []
 
-    print(f"Running pulse-pair estimator convergence study for property: {DOPPLER_PROPERTY}...")
+    print(f"Running pulse-pair estimator convergence study for estimator: {args.estimator}...")
     for n_pulses in N_PULSES_LIST:
         df = PRF / n_pulses
 
         mean_est, std_est = run_monte_carlo(
             n_pulses=n_pulses,
             prf=PRF,
-            estimator_func=ESTIMATOR_FUNC,
+            estimator_func=estimator_func,
+            estimator_type=args.estimator,
             n_mc=N_MC,
         )
 
-        norm_bias = np.abs(mean_est - TRUE_VALUE) / PRF
+        norm_bias = np.abs(mean_est - true_value) / PRF
         norm_std = std_est / PRF
 
         results.append(
@@ -102,7 +120,7 @@ def main():
         linestyle="-",
         color="b",
         markersize=3,
-        label=f"Relative Bias",
+        label=f"Normalized Bias",
     )
 
     ax.plot(
@@ -112,7 +130,7 @@ def main():
         linestyle="--",
         color="g",
         markersize=3,
-        label=f"Relative Standard Deviation",
+        label=f"Normalized Standard Deviation",
     )
     ax.plot(
         n_pulses_arr,
@@ -121,17 +139,20 @@ def main():
     )
 
     ax.set_xlabel("Number of Pulses", fontsize=12)
-    ax.set_title(TITLE, fontsize=12)
+    ax.set_title(title, fontsize=12)
     ax.set_xscale("log")
     ax.set_yscale("log")
     ax.grid(True, which="both", linestyle=":", alpha=0.6)
     ax.legend(loc="upper right")
 
     plt.tight_layout()
-    output_path = f"pulse_pair_{DOPPLER_PROPERTY}_convergence_study.png"
-    plt.savefig(output_path, dpi=300)
-    print(f"\nPlot saved to {output_path}")
-    plt.show()
+    if args.out is not None:
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(args.out, dpi=300)
+        plt.close()
+        print(f"\nPlot saved to {args.out}")
+    else:
+        plt.show()
 
 
 if __name__ == "__main__":
