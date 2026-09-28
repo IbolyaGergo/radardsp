@@ -206,10 +206,6 @@ def main():
         plt.close()
         print(f"\nPlot saved to {args.out}")
     else:
-        output_path = Path(f"pulse_pair_{args.estimator}_{args.metric}_convergence_study.png")
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(output_path, dpi=300)
-        print(f"\nPlot saved to {output_path}")
         plt.show()
 
 
