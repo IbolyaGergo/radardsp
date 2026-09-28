@@ -45,6 +45,19 @@ ESTIMATOR_CONFIGS = {
             "std": "Normalized Standard Deviation",
         },
     },
+    "snr": {
+        "title": "Pulse-Pair SNR Estimator Convergence",
+        "compute_est": lambda iq, prf: (
+            10.0 * np.log10(np.maximum(1e-9, compute_pulse_pair_snr(iq)))
+        ),
+        "true_value": lambda snr: snr,
+        "compute_norm_bias": lambda mean, true, prf: np.abs(mean - true),
+        "compute_norm_std": lambda std, prf: std,
+        "labels": {
+            "bias": "Absolute Bias (dB)",
+            "std": "Standard Deviation (dB)",
+        },
+    },
 }
 
 
