@@ -4,7 +4,11 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 from radarsig.signal_generator import generate_gaussian_doppler_signal
-from radarsig.processing import compute_pulse_pair_mean, compute_pulse_pair_variance
+from radarsig.processing import (
+    compute_pulse_pair_mean,
+    compute_pulse_pair_variance,
+    compute_pulse_pair_snr,
+)
 
 # ==========================================
 # CONFIGURATION CONSTANTS
@@ -16,13 +20,39 @@ N_PULSES_LIST = np.arange(10, 1001, 10)
 TRUE_STD = PRF / 10.0
 TRUE_MEAN = 0.0
 
+ESTIMATOR_CONFIGS = {
+    "mean": {
+        "title": "Pulse-Pair Mean Estimator Convergence",
+        "compute_est": lambda iq, prf: compute_pulse_pair_mean(iq, prf=prf),
+        "true_value": lambda snr: TRUE_MEAN,
+        "compute_norm_bias": lambda mean, true, prf: np.abs(mean - true) / prf,
+        "compute_norm_std": lambda std, prf: std / prf,
+        "labels": {
+            "bias": "Normalized Bias",
+            "std": "Normalized Standard Deviation",
+        },
+    },
+    "width": {
+        "title": "Pulse-Pair Spectral Width Estimator Convergence",
+        "compute_est": lambda iq, prf: np.sqrt(
+            np.maximum(0.0, compute_pulse_pair_variance(iq, prf=prf))
+        ),
+        "true_value": lambda snr: TRUE_STD,
+        "compute_norm_bias": lambda mean, true, prf: np.abs(mean - true) / prf,
+        "compute_norm_std": lambda std, prf: std / prf,
+        "labels": {
+            "bias": "Normalized Bias",
+            "std": "Normalized Standard Deviation",
+        },
+    },
+}
+
 
 # run_monte_carlo() {{{1
 def run_monte_carlo(
     n_pulses: int,
     prf: float,
-    estimator_func,
-    estimator_type: str,
+    config: dict,
     snr: float | None,
     n_mc: int,
 ) -> tuple[float, float]:
@@ -46,9 +76,7 @@ def run_monte_carlo(
             seed=i,
         )
 
-        est = estimator_func(iq, prf=prf)
-        if estimator_type == "width":
-            est = np.sqrt(np.maximum(0.0, est))
+        est = config["compute_est"](iq, prf=prf)
         estimates.append(est)
 
     mean_est = np.mean(estimates)
@@ -61,9 +89,9 @@ def main():
     parser = argparse.ArgumentParser(description="Study pulse-pair estimator convergence.")
     parser.add_argument(
         "--estimator",
-        choices=["mean", "width"],
+        choices=list(ESTIMATOR_CONFIGS.keys()),
         default="width",
-        help="Estimator type to study (mean or width)",
+        help="Estimator type to study",
     )
     parser.add_argument(
         "--metric",
@@ -87,17 +115,8 @@ def main():
 
     args = parser.parse_args()
 
-    # Estimator-specific setup
-    if args.estimator == "width":
-        true_value = TRUE_STD
-        estimator_func = compute_pulse_pair_variance
-        title = "Pulse-Pair Spectral Width Estimator Convergence"
-    elif args.estimator == "mean":
-        true_value = TRUE_MEAN
-        estimator_func = compute_pulse_pair_mean
-        title = "Pulse-Pair Mean Estimator Convergence"
-    else:
-        raise ValueError(f"Unknown estimator: {args.estimator}")
+    config = ESTIMATOR_CONFIGS[args.estimator]
+    title = config["title"]
 
     results = []
 
@@ -111,17 +130,18 @@ def main():
         snr_label = "Noise-Free" if np.isinf(snr) else f"{snr} dB"
         print(f"Running study for SNR: {snr_label}...")
 
+        true_value = config["true_value"](snr)
+
         for n_pulses in N_PULSES_LIST:
             mean_est, std_est = run_monte_carlo(
                 n_pulses=n_pulses,
                 prf=PRF,
-                estimator_func=estimator_func,
-                estimator_type=args.estimator,
+                config=config,
                 snr=snr,
                 n_mc=N_MC,
             )
-            norm_bias = np.abs(mean_est - true_value) / PRF
-            norm_std = std_est / PRF
+            norm_bias = config["compute_norm_bias"](mean_est, true_value, PRF)
+            norm_std = config["compute_norm_std"](std_est, PRF)
             results.append(
                 {
                     "n_pulses": n_pulses,
@@ -156,9 +176,7 @@ def main():
             linewidth=1.5,
         )
 
-    metric_title_part = (
-        "Normalized Standard Deviation" if args.metric == "std" else "Normalized Bias"
-    )
+    metric_title_part = config["labels"][args.metric]
 
     ax.set_xlabel("Number of Pulses", fontsize=12)
     ax.set_ylabel(metric_title_part, fontsize=12)
