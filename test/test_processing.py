@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 from radarsig.processing import (
     compute_pulse_phase_difference,
-    compute_mean_phase_difference,
+    compute_pulse_pair_mean,
     compute_signal_quality_index,
     compute_pulse_pair_variance,
     compute_pulse_pair_snr,
@@ -37,18 +37,20 @@ def test_compute_pulse_phase_difference_values():
     np.testing.assert_allclose(delta_phi, expected, atol=1e-7)
 
 
-# test_compute_mean_phase_difference() {{{1
-def test_compute_mean_phase_difference():
+# test_compute_pulse_pair_mean() {{{1
+def test_compute_pulse_pair_mean():
     n_range = 1
     n_pulse = 5
     delta = np.pi / 4
+    prf = 1
     pulses = np.array([0.0, delta, 2 * delta, 3 * delta, 4 * delta])
     iq_data = np.exp(1j * pulses).reshape(1, -1)
 
-    mean_phi = compute_mean_phase_difference(iq_data)
+    mean_freq = compute_pulse_pair_mean(iq_data, prf=1)
+    expected_mean_freq = -prf / (2 * np.pi) * delta
 
-    assert mean_phi.shape == (n_range,)
-    np.testing.assert_allclose(mean_phi, [-delta], atol=1e-7)
+    assert mean_freq.shape == (n_range,)
+    np.testing.assert_allclose(mean_freq, expected_mean_freq, atol=1e-7)
 
 
 # test_compute_signal_quality_index() {{{1
