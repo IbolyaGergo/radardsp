@@ -13,7 +13,12 @@ from scipy.signal import freqz
 
 # analyze_iq_data() {{{1
 def analyze_iq_data(
-    x: np.ndarray, y: np.ndarray, b: np.ndarray, a: np.ndarray, threshold: float = 1e-3
+    x: np.ndarray,
+    y: np.ndarray,
+    b: np.ndarray,
+    a: np.ndarray,
+    snr_threshold: float = 1e-9,
+    threshold: float = 1e-3,
 ) -> dict[str, dict[str, np.ndarray]]:
     """
     Analyze FPGA IQ channel data against filter coefficients using sliding window convolution.
@@ -44,6 +49,8 @@ def analyze_iq_data(
 
     n_tap = max([len(b), len(a)])
 
+    global_peak_power = np.max(np.abs(x) ** 2)
+
     results = {}
     for part in ("real", "imag"):
         x_part = getattr(x, part)
@@ -56,8 +63,13 @@ def analyze_iq_data(
         x_sum = np.sum(b * x_windows, axis=-1)
 
         ref_local = np.maximum(np.abs(x_sum), 1e-3)
-
         err_rel = np.abs(y_sum - x_sum) / ref_local
+
+        # Window-level mean power mask
+        window_mean_power = np.mean(np.abs(x_windows) ** 2, axis=-1)
+        valid_mask = window_mean_power >= (snr_threshold * global_peak_power)
+
+        err_rel = np.where(valid_mask, err_rel, 0.0)
 
         failing_bins = np.where(np.any(err_rel > threshold, axis=-1))[0]
 
@@ -168,6 +180,7 @@ def compute_median_ratio_spectrum(
     n_bins: int = 3165,
     fft_len: int = 256,
     window: np.ndarray | None = None,
+    snr_threshold: float = 1e-6,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Compute empirical median ratio spectrum (|Y|/|X| in dB) across range bins
@@ -179,8 +192,15 @@ def compute_median_ratio_spectrum(
     x_sub = x[:n_bins, :]
     y_sub = y[:n_bins, :]
 
+    global_peak_power = np.max(np.abs(x) ** 2)
+
     ratio_db_list = []
     for k in range(n_bins):
+        # Skip range bins in the noise floor
+        bin_power = np.mean(np.abs(x_sub[k]) ** 2)
+        if bin_power < (snr_threshold * global_peak_power):
+            continue
+
         x_win = x_sub[k] * window_arr
         y_win = y_sub[k] * window_arr
 
@@ -205,6 +225,7 @@ def compute_csd_spectrum(
     n_bins: int = 3165,
     fft_len: int = 256,
     window: np.ndarray | None = None,
+    snr_threshold: float = 1e-6,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Compute empirical CSD spectrum (S_yx / S_xx in dB) across range bins
@@ -219,7 +240,14 @@ def compute_csd_spectrum(
     num_sum = np.zeros(half_len, dtype=complex)
     den_sum = np.zeros(half_len, dtype=complex)
 
+    global_peak_power = np.max(np.abs(x) ** 2)
+
     for k in range(n_bins):
+        # Skip range bins in the noise floor
+        bin_power = np.mean(np.abs(x_sub[k]) ** 2)
+        if bin_power < (snr_threshold * global_peak_power):
+            continue
+
         x_win = x_sub[k] * window_arr
         y_win = y_sub[k] * window_arr
 
@@ -245,6 +273,7 @@ def compute_coherence(
     n_bins: int = 3165,
     fft_len: int = 256,
     window: np.ndarray | None = None,
+    snr_threshold: float = 1e-6,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Compute Magnitude-Squared Coherence (gamma_xy^2) between x and y across range bins
@@ -260,7 +289,14 @@ def compute_coherence(
     den_x_sum = np.zeros(half_len, dtype=float)
     den_y_sum = np.zeros(half_len, dtype=float)
 
+    global_peak_power = np.max(np.abs(x) ** 2)
+
     for k in range(n_bins):
+        # Skip range bins in the noise floor
+        bin_power = np.mean(np.abs(x_sub[k]) ** 2)
+        if bin_power < (snr_threshold * global_peak_power):
+            continue
+
         x_win = x_sub[k] * window_arr
         y_win = y_sub[k] * window_arr
 
