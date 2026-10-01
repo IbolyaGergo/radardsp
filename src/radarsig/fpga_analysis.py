@@ -88,6 +88,7 @@ def _compute_metrics(err_rel: np.ndarray) -> dict:
 def analyze_iq_pair(
     i_path: Path | str,
     q_path: Path | str,
+    n_bins: int = 3165,
     offset_dtype: int = 512,
     n_pulse: int = 14,
     threshold: float = 1e-3,
@@ -101,6 +102,8 @@ def analyze_iq_pair(
         Path to in-phase data file.
     q_path : Path | str
         Path to quadrature data file.
+    n_bins:
+        Number of bins to take into account.
     offset_dtype : int, default=512
         Offset in elements for IQ binary loading.
     n_pulse : int, default=14
@@ -115,8 +118,13 @@ def analyze_iq_pair(
     """
     i_path, q_path = Path(i_path), Path(q_path)
 
-    x, y = load_fpga_ram_binary_to_iq(i_path, q_path, offset_dtype=offset_dtype, n_pulse=n_pulse)
+    x_loaded, y_loaded = load_fpga_ram_binary_to_iq(
+        i_path, q_path, offset_dtype=offset_dtype, n_pulse=n_pulse
+    )
     b, a = load_filter_coeffs_from_binary(i_path)
+
+    x = x_loaded[:n_bins, :]
+    y = y_loaded[:n_bins, :]
 
     results = analyze_iq_data(x, y, b, a, threshold=threshold)
 
