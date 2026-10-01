@@ -55,18 +55,17 @@ def analyze_iq_data(
         y_sum = np.sum(a * y_windows, axis=-1)
         x_sum = np.sum(b * x_windows, axis=-1)
 
-        ref = np.max(np.abs(x_sum), axis=-1, keepdims=True)
+        ref_local = np.maximum(np.abs(x_sum), 1e-3)
 
-        err_rel = np.zeros_like(y_sum, dtype=float)
-        np.divide(y_sum - x_sum, ref, out=err_rel, where=np.abs(ref) > 1e-3)
+        err_rel = np.abs(y_sum - x_sum) / ref_local
 
-        failing_bins = np.where(np.any(np.abs(err_rel) > threshold, axis=-1))[0]
+        failing_bins = np.where(np.any(err_rel > threshold, axis=-1))[0]
 
         results[part] = {
             "err_rel": err_rel,
             "x_sum": x_sum,
             "y_sum": y_sum,
-            "ref": ref,
+            "ref": ref_local,
             "failing_bins": failing_bins,
         }
     return results
