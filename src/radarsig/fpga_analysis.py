@@ -187,13 +187,9 @@ def compute_median_ratio_spectrum(
     """
     fft_len = x.shape[1] if fft_len is None else fft_len
     n_bins = min(n_bins, x.shape[0])
-    window_arr = np.hamming(x.shape[1]) if window is None else window
 
-    x_win = x * window_arr
-    y_win = y * window_arr
-
-    x_fft = fft(x_win, n=fft_len)
-    y_fft = fft(y_win, n=fft_len)
+    x_fft = fft(x, n=fft_len)
+    y_fft = fft(y, n=fft_len)
 
     with np.errstate(divide="ignore", invalid="ignore"):
         response_db = 20 * (np.log10(np.abs(y_fft)) - np.log10(np.abs(x_fft)))
@@ -215,18 +211,14 @@ def compute_csd_spectrum(
     and compare with theoretical freqz response.
     """
     fft_len = x.shape[1] if fft_len is None else fft_len
-    window_arr = np.hamming(x.shape[1]) if window is None else window
 
     num_sum = np.zeros(fft_len, dtype=complex)
     den_sum = np.zeros(fft_len, dtype=complex)
     n_bins = x.shape[0]
 
     for k in range(n_bins):
-        x_win = x[k] * window_arr
-        y_win = y[k] * window_arr
-
-        X_fft = np.fft.fft(x_win, n=fft_len)
-        Y_fft = np.fft.fft(y_win, n=fft_len)
+        X_fft = np.fft.fft(x[k], n=fft_len)
+        Y_fft = np.fft.fft(y[k], n=fft_len)
 
         num_sum += Y_fft * np.conj(X_fft)
         den_sum += X_fft * np.conj(X_fft)
@@ -250,7 +242,6 @@ def compute_coherence(
     for complex IQ signals.
     """
     fft_len = x.shape[1] if fft_len is None else fft_len
-    window_arr = np.hamming(fft_len) if window is None else window
 
     n_bins = x.shape[0]
     num_sum = np.zeros(fft_len, dtype=complex)
@@ -258,11 +249,8 @@ def compute_coherence(
     den_y_sum = np.zeros(fft_len, dtype=float)
 
     for k in range(n_bins):
-        x_win = x[k] * window_arr
-        y_win = y[k] * window_arr
-
-        X_fft = fft(x_win, n=fft_len)
-        Y_fft = fft(y_win, n=fft_len)
+        X_fft = fft(x[k], n=fft_len)
+        Y_fft = fft(y[k], n=fft_len)
 
         num_sum += Y_fft * np.conj(X_fft)
         den_x_sum += np.real(X_fft * np.conj(X_fft))

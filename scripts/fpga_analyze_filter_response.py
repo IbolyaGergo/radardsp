@@ -183,17 +183,20 @@ def process_pair(pair_id, i_path, q_path, method, window_names, out_file):
     for window_name in window_names:
         window_arr = get_window(window_name, fft_len)
 
+        x_win = x_valid * window_arr
+        y_win = y_valid * window_arr
+
         if method == "median":
-            emp_raw = method_meta["func"](x_valid, y_valid, window=window_arr)
+            emp_raw = method_meta["func"](x_win, y_win, window=window_arr)
             emp_data = fftshift(emp_raw)
-            coh_raw = compute_coherence(x_valid, y_valid, fft_len=fft_len, window=window_arr)
+            coh_raw = compute_coherence(x_win, y_win, fft_len=fft_len, window=window_arr)
             coherence = fftshift(coh_raw)
         elif method == "coherence":
-            coh_raw = method_meta["func"](x, y, fft_len=fft_len, window=window_arr)
+            coh_raw = method_meta["func"](x_win, y_win, fft_len=fft_len, window=window_arr)
             emp_data = fftshift(coh_raw)
             coherence = None
         else:
-            csd_raw = method_meta["func"](x, y, fft_len=fft_len, window=window_arr)
+            csd_raw = method_meta["func"](x_win, y_win, fft_len=fft_len, window=window_arr)
             emp_data = fftshift(csd_raw)
             coherence = None
 
