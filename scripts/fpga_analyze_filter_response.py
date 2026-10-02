@@ -126,12 +126,6 @@ ANALYSIS_METHODS = {
         "filename_prefix": "filter_spectrum_csd",
         "plotter": plot_median_spectrum,
     },
-    "coherence": {
-        "func": compute_coherence,
-        "title_prefix": "Magnitude-Squared Coherence & Theoretical Response",
-        "filename_prefix": "filter_spectrum_coherence",
-        "plotter": plot_coherence_spectrum,
-    },
 }
 
 
@@ -186,19 +180,9 @@ def process_pair(pair_id, i_path, q_path, method, window_names, out_file):
         x_win = x_valid * window_arr
         y_win = y_valid * window_arr
 
-        if method == "median":
-            emp_raw = method_meta["func"](x_win, y_win, window=window_arr)
-            emp_data = fftshift(emp_raw)
-            coh_raw = compute_coherence(x_win, y_win, fft_len=fft_len, window=window_arr)
-            coherence = fftshift(coh_raw)
-        elif method == "coherence":
-            coh_raw = method_meta["func"](x_win, y_win, fft_len=fft_len, window=window_arr)
-            emp_data = fftshift(coh_raw)
-            coherence = None
-        else:
-            csd_raw = method_meta["func"](x_win, y_win, fft_len=fft_len, window=window_arr)
-            emp_data = fftshift(csd_raw)
-            coherence = None
+        emp_data = fftshift(method_meta["func"](x_win, y_win, window=window_arr))
+        coh_raw = compute_coherence(x_win, y_win, fft_len=fft_len, window=window_arr)
+        coherence = fftshift(coh_raw)
 
         results_to_plot.append(
             FPGASpectrumResult(
