@@ -156,7 +156,6 @@ def compute_median_ratio_spectrum(
     x: np.ndarray,
     y: np.ndarray,
     fft_len: int | None = None,
-    snr_threshold: float = 1e-6,
 ) -> np.ndarray:
     """
     Compute empirical median ratio spectrum (|Y|/|X| in dB) across range bins
