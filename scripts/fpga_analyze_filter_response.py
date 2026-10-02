@@ -25,12 +25,13 @@ class FPGASpectrumResult:
     freqs: np.ndarray
     h_db: np.ndarray
     emp_data: np.ndarray
+    coherence: np.ndarray | None = None
 
 
-def plot_magnitude_spectrum(ax, results_list, pair_id):
-    """Plot theoretical response and one or more empirical magnitude curves."""
+def plot_median_spectrum(ax, results_list, pair_id):
+    """Plot theoretical response, empirical median magnitude [dB], and dual-axis coherence."""
     base = results_list[0]
-    ax.plot(
+    line1 = ax.plot(
         base.freqs,
         base.h_db,
         label="Theoretical ($|H|$) - freqz",
@@ -40,13 +41,38 @@ def plot_magnitude_spectrum(ax, results_list, pair_id):
     )
 
     colors = plt.cm.tab10(np.linspace(0, 1, len(results_list)))
+    emp_lines = []
     for res, color in zip(results_list, colors):
-        ax.plot(
+        line = ax.plot(
             res.freqs, res.emp_data, label=f"Empirical ({res.window_name})", color=color, alpha=0.8
         )
+        emp_lines.extend(line)
 
-    ax.set_ylabel("Magnitude [dB]")
-    ax.legend(loc="lower right")
+    ax.set_ylabel("Magnitude [dB]", color="black")
+    ax.tick_params(axis="y", labelcolor="black")
+
+    ax2 = ax.twinx()
+    coherence_lines = []
+    for res, color in zip(results_list, colors):
+        if res.coherence is not None:
+            line = ax2.plot(
+                res.freqs,
+                res.coherence,
+                label=r"Coherence ($\gamma_{xy}^2$) " + f"[{res.window_name}]",
+                color="green",
+                linewidth=1.5,
+                linestyle="-.",
+                alpha=0.8,
+            )
+            coherence_lines.extend(line)
+
+    ax2.set_ylabel("Coherence", color="green")
+    ax2.tick_params(axis="y", labelcolor="green")
+    ax2.set_ylim(-0.05, 1.05)
+
+    lines = line1 + emp_lines + coherence_lines
+    labels = [l.get_label() for l in lines]
+    ax.legend(lines, labels, loc="lower right")
 
 
 def plot_coherence_spectrum(ax, results_list, pair_id):
@@ -92,13 +118,13 @@ ANALYSIS_METHODS = {
         "func": compute_median_ratio_spectrum,
         "title_prefix": "IIR Filter Frequency Response (Median)",
         "filename_prefix": "filter_spectrum_median",
-        "plotter": plot_magnitude_spectrum,
+        "plotter": plot_median_spectrum,
     },
     "csd": {
         "func": compute_csd_spectrum,
         "title_prefix": "IIR Filter Frequency Response (CSD)",
         "filename_prefix": "filter_spectrum_csd",
-        "plotter": plot_magnitude_spectrum,
+        "plotter": plot_median_spectrum,
     },
     "coherence": {
         "func": compute_coherence,
@@ -160,6 +186,8 @@ def process_pair(pair_id, i_path, q_path, method, window_names, out_file):
         if method == "median":
             emp_raw = method_meta["func"](x_valid, y_valid, window=window_arr)
             emp_data = fftshift(emp_raw)
+            coh_raw = compute_coherence(x_valid, y_valid, fft_len=fft_len, window=window_arr)
+            coherence = fftshift(coh_raw)
         elif method == "coherence":
             coh_raw = method_meta["func"](x, y, fft_len=fft_len, window=window_arr)
             emp_data = fftshift(coh_raw)
@@ -173,6 +201,7 @@ def process_pair(pair_id, i_path, q_path, method, window_names, out_file):
                 freqs=freqs,
                 h_db=h_db,
                 emp_data=emp_data,
+                coherence=coherence,
             )
         )
 
