@@ -3,6 +3,7 @@
 import numpy as np
 from numpy.lib.stride_tricks import sliding_window_view
 from pathlib import Path
+from scipy.fft import fft
 
 from radarsig.fpga_io import (
     load_fpga_ram_binary_to_iq,
@@ -189,29 +190,26 @@ def compute_median_ratio_spectrum(
     n_bins, window_arr, half_len, freqs, h_db = _prepare_spectrum_computation(
         x, b, a, n_bins, fft_len, window
     )
-    x_sub = x[:n_bins, :]
-    y_sub = y[:n_bins, :]
+    x = x[:n_bins, :]
+    y = y[:n_bins, :]
 
     global_peak_power = np.max(np.abs(x) ** 2)
+    x_mean_power = np.mean(np.abs(x) ** 2, axis=-1)
 
-    ratio_db_list = []
-    for k in range(n_bins):
-        # Skip range bins in the noise floor
-        bin_power = np.mean(np.abs(x_sub[k]) ** 2)
-        if bin_power < (snr_threshold * global_peak_power):
-            continue
+    valid_mask = x_mean_power >= (snr_threshold * global_peak_power)
+    x_valid = x[valid_mask]
+    y_valid = y[valid_mask]
 
-        x_win = x_sub[k] * window_arr
-        y_win = y_sub[k] * window_arr
+    x_win = x_valid * window_arr
+    y_win = y_valid * window_arr
 
-        X_fft = np.fft.fft(x_win, n=fft_len)[:half_len]
-        Y_fft = np.fft.fft(y_win, n=fft_len)[:half_len]
+    x_fft = fft(x_win, n=fft_len)[:, :half_len]
+    y_fft = fft(y_win, n=fft_len)[:, :half_len]
 
-        with np.errstate(divide="ignore", invalid="ignore"):
-            ratio_db = 20 * np.log10(np.abs(Y_fft)) - 20 * np.log10(np.abs(X_fft))
-        ratio_db_list.append(ratio_db)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        response_db = 20 * (np.log10(np.abs(y_fft)) - np.log10(np.abs(x_fft)))
 
-    median_ratio_db = np.median(np.array(ratio_db_list), axis=0)
+    median_ratio_db = np.median(response_db, axis=0)
 
     return freqs, h_db, median_ratio_db
 
