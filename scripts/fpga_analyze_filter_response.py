@@ -15,6 +15,7 @@ from radarsig.fpga_analysis import (
     compute_median_ratio_spectrum,
     compute_csd_spectrum,
     compute_coherence,
+    filter_valid_bins,
 )
 
 
@@ -140,20 +141,29 @@ def process_pair(pair_id, i_path, q_path, method, window_names, out_file):
 
     method_meta = ANALYSIS_METHODS[method]
 
-    results_to_plot = []
+    # Separate theoretical filter response computation over whole unit circle [0, 2pi], shifted to [-pi, pi]
     fft_len = x.shape[1]
+    w, h = freqz(b, a, worN=fft_len, whole=True)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        h_db = fftshift(20 * np.log10(np.abs(h)))
+    freqs = np.linspace(-np.pi, np.pi, fft_len)
 
+    x = x[:3165, :]
+    y = y[:3165, :]
+
+    x_valid, y_valid = filter_valid_bins(x, y, snr_threshold=1e-6)
+
+    results_to_plot = []
     for window_name in window_names:
         window_arr = get_window(window_name, fft_len)
 
         if method == "median":
-            # Separate theoretical filter response computation over whole unit circle [0, 2pi], shifted to [-pi, pi]
-            w, h = freqz(b, a, worN=fft_len, whole=True)
-            h_db = fftshift(20 * np.log10(np.abs(h)))
-            freqs = np.linspace(-np.pi, np.pi, fft_len)
-
-            emp_raw = method_meta["func"](x, y, window=window_arr)
+            emp_raw = method_meta["func"](x_valid, y_valid, window=window_arr)
             emp_data = fftshift(emp_raw)
+        elif method == "coherence":
+            coh_raw = method_meta["func"](x, y, fft_len=fft_len, window=window_arr)
+            emp_data = fftshift(coh_raw)
+            coherence = None
         else:
             freqs, h_db, emp_data = method_meta["func"](x, y, b, a, window=window_arr)
 

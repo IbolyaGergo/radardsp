@@ -189,18 +189,8 @@ def compute_median_ratio_spectrum(
     n_bins = min(n_bins, x.shape[0])
     window_arr = np.hamming(x.shape[1]) if window is None else window
 
-    x = x[:n_bins, :]
-    y = y[:n_bins, :]
-
-    global_peak_power = np.max(np.abs(x) ** 2)
-    x_mean_power = np.mean(np.abs(x) ** 2, axis=-1)
-
-    valid_mask = x_mean_power >= (snr_threshold * global_peak_power)
-    x_valid = x[valid_mask]
-    y_valid = y[valid_mask]
-
-    x_win = x_valid * window_arr
-    y_win = y_valid * window_arr
+    x_win = x * window_arr
+    y_win = y * window_arr
 
     x_fft = fft(x_win, n=fft_len)
     y_fft = fft(y_win, n=fft_len)
@@ -295,4 +285,12 @@ def compute_coherence(
         coherence = np.abs(num_sum) ** 2 / (den_x_sum * den_y_sum)
         coherence = np.nan_to_num(coherence, nan=0.0)
 
-    return freqs, h_db, coherence
+    return coherence
+
+
+# filter_valid_bins() {{{1
+def filter_valid_bins(x, y, snr_threshold=1e-6):
+    global_peak_power = np.max(np.abs(x) ** 2)
+    x_mean_power = np.mean(np.abs(x) ** 2, axis=-1)
+    valid_mask = x_mean_power >= (snr_threshold * global_peak_power)
+    return x[valid_mask], y[valid_mask]
