@@ -113,7 +113,7 @@ def plot_result(results_list, method: str, pair_id: str, out_file: Path | None):
         plt.show()
 
 
-def process_pair(pair_id, i_path, q_path, method, window_names, out_file):
+def process_pair(pair_id, i_path, q_path, n_bins, method, window_names, out_file):
     try:
         x, y = load_fpga_ram_binary_to_iq(i_path, q_path, offset_dtype=512, n_pulse=14)
         b, a = load_filter_coeffs_from_binary(i_path)
@@ -130,8 +130,9 @@ def process_pair(pair_id, i_path, q_path, method, window_names, out_file):
         h_db = fftshift(20 * np.log10(np.abs(h)))
     freqs = np.linspace(-np.pi, np.pi, fft_len)
 
-    x = x[:3165, :]
-    y = y[:3165, :]
+    # Preprocessing
+    x = x[:n_bins, :]
+    y = y[:n_bins, :]
 
     x_valid, y_valid = filter_valid_bins(x, y, snr_threshold=1e-6)
 
@@ -182,6 +183,12 @@ def main():
         default=["hamming"],
         help="Window function name(s) (e.g., hamming hann boxcar blackman)",
     )
+    parser.add_argument(
+        "--n_bins",
+        type=int,
+        default=3165,
+        help=" Number of bins to take into account.",
+    )
 
     args = parser.parse_args()
 
@@ -193,7 +200,7 @@ def main():
         print(f"Error: Pair {args.pair} files not found in {data_dir}")
         return
     print(f"Processing single pair: {args.pair} (method: {args.method})...")
-    process_pair(args.pair, i_path, q_path, args.method, args.window, args.out)
+    process_pair(args.pair, i_path, q_path, args.n_bins, args.method, args.window, args.out)
 
 
 if __name__ == "__main__":
