@@ -177,7 +177,6 @@ def compute_median_ratio_spectrum(
     x: np.ndarray,
     y: np.ndarray,
     fft_len: int | None = None,
-    window: np.ndarray | None = None,
     snr_threshold: float = 1e-6,
 ) -> np.ndarray:
     """
@@ -202,7 +201,6 @@ def compute_csd_spectrum(
     x: np.ndarray,
     y: np.ndarray,
     fft_len: int | None = None,
-    window: np.ndarray | None = None,
 ) -> np.ndarray:
     """
     Compute empirical CSD spectrum (S_yx / S_xx in dB) across range bins
@@ -221,8 +219,8 @@ def compute_csd_spectrum(
         num_sum += Y_fft * np.conj(X_fft)
         den_sum += X_fft * np.conj(X_fft)
 
-    H_csd = num_sum / den_sum
     with np.errstate(divide="ignore", invalid="ignore"):
+        H_csd = num_sum / den_sum
         h_csd_db = 20 * np.log10(np.abs(H_csd))
 
     return h_csd_db
@@ -233,7 +231,6 @@ def compute_coherence(
     x: np.ndarray,
     y: np.ndarray,
     fft_len: int | None = None,
-    window: np.ndarray | None = None,
 ) -> np.ndarray:
     """
     Compute Magnitude-Squared Coherence (gamma_xy^2) between x and y across range bins

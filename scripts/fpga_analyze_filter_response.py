@@ -180,8 +180,8 @@ def process_pair(pair_id, i_path, q_path, method, window_names, out_file):
         x_win = x_valid * window_arr
         y_win = y_valid * window_arr
 
-        emp_data = fftshift(method_meta["func"](x_win, y_win, window=window_arr))
-        coh_raw = compute_coherence(x_win, y_win, fft_len=fft_len, window=window_arr)
+        emp_data = fftshift(method_meta["func"](x_win, y_win))
+        coh_raw = compute_coherence(x_win, y_win, fft_len=fft_len)
         coherence = fftshift(coh_raw)
 
         results_to_plot.append(
