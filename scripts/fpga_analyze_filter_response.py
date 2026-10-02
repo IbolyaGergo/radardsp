@@ -193,7 +193,9 @@ def process_pair(pair_id, i_path, q_path, method, window_names, out_file):
             emp_data = fftshift(coh_raw)
             coherence = None
         else:
-            freqs, h_db, emp_data = method_meta["func"](x, y, b, a, window=window_arr)
+            csd_raw = method_meta["func"](x, y, fft_len=fft_len, window=window_arr)
+            emp_data = fftshift(csd_raw)
+            coherence = None
 
         results_to_plot.append(
             FPGASpectrumResult(

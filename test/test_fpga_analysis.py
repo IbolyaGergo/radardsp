@@ -42,13 +42,14 @@ def test_compute_spectral_methods():
     fft_len = x.shape[1]
     w, h = freqz(b, a, worN=fft_len, whole=True)
     h_db = np.fft.fftshift(20 * np.log10(np.abs(h)))
+
     median_ratio_raw = compute_median_ratio_spectrum(x, y, fft_len=fft_len)
     median_ratio_db = np.fft.fftshift(median_ratio_raw)
     rmse_median = np.sqrt(np.mean((h_db - median_ratio_db) ** 2))
     assert rmse_median < 1.5
 
     # Test CSD spectrum
-    freqs_csd, h_db_csd, h_csd_db = compute_csd_spectrum(x, y, b, a)
+    h_csd_db = compute_csd_spectrum(x, y)
     rmse_csd = np.sqrt(np.mean((h_db_csd - h_csd_db) ** 2))
     assert rmse_csd < 1.5
 

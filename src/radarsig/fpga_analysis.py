@@ -207,39 +207,26 @@ def compute_median_ratio_spectrum(
 def compute_csd_spectrum(
     x: np.ndarray,
     y: np.ndarray,
-    b: np.ndarray,
-    a: np.ndarray,
-    n_bins: int = 3165,
-    fft_len: int = 256,
+    fft_len: int | None = None,
     window: np.ndarray | None = None,
-    snr_threshold: float = 1e-6,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> np.ndarray:
     """
     Compute empirical CSD spectrum (S_yx / S_xx in dB) across range bins
     and compare with theoretical freqz response.
     """
-    n_bins, window_arr, half_len, freqs, h_db = _prepare_spectrum_computation(
-        x, b, a, n_bins, fft_len, window
-    )
-    x_sub = x[:n_bins, :]
-    y_sub = y[:n_bins, :]
+    fft_len = x.shape[1] if fft_len is None else fft_len
+    window_arr = np.hamming(x.shape[1]) if window is None else window
 
-    num_sum = np.zeros(half_len, dtype=complex)
-    den_sum = np.zeros(half_len, dtype=complex)
-
-    global_peak_power = np.max(np.abs(x) ** 2)
+    num_sum = np.zeros(fft_len, dtype=complex)
+    den_sum = np.zeros(fft_len, dtype=complex)
+    n_bins = x.shape[0]
 
     for k in range(n_bins):
-        # Skip range bins in the noise floor
-        bin_power = np.mean(np.abs(x_sub[k]) ** 2)
-        if bin_power < (snr_threshold * global_peak_power):
-            continue
+        x_win = x[k] * window_arr
+        y_win = y[k] * window_arr
 
-        x_win = x_sub[k] * window_arr
-        y_win = y_sub[k] * window_arr
-
-        X_fft = np.fft.fft(x_win, n=fft_len)[:half_len]
-        Y_fft = np.fft.fft(y_win, n=fft_len)[:half_len]
+        X_fft = np.fft.fft(x_win, n=fft_len)
+        Y_fft = np.fft.fft(y_win, n=fft_len)
 
         num_sum += Y_fft * np.conj(X_fft)
         den_sum += X_fft * np.conj(X_fft)
@@ -248,7 +235,7 @@ def compute_csd_spectrum(
     with np.errstate(divide="ignore", invalid="ignore"):
         h_csd_db = 20 * np.log10(np.abs(H_csd))
 
-    return freqs, h_db, h_csd_db
+    return h_csd_db
 
 
 # compute_coherence() {{{1
