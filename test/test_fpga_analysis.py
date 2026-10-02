@@ -53,6 +53,6 @@ def test_compute_spectral_methods():
     assert rmse_csd < 1.5
 
     # Test coherence
-    freqs_coh, _, coherence = compute_coherence(x, y, b, a)
+    coherence = compute_coherence(x, y)
     mean_coh = np.mean(coherence)
     assert mean_coh > 0.90

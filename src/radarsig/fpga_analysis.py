@@ -265,40 +265,27 @@ def compute_csd_spectrum(
 def compute_coherence(
     x: np.ndarray,
     y: np.ndarray,
-    b: np.ndarray,
-    a: np.ndarray,
-    n_bins: int = 3165,
-    fft_len: int = 256,
+    fft_len: int | None = None,
     window: np.ndarray | None = None,
-    snr_threshold: float = 1e-6,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> np.ndarray:
     """
     Compute Magnitude-Squared Coherence (gamma_xy^2) between x and y across range bins
-    along with theoretical freqz response.
+    for complex IQ signals.
     """
-    n_bins, window_arr, half_len, freqs, h_db = _prepare_spectrum_computation(
-        x, b, a, n_bins, fft_len, window
-    )
-    x_sub = x[:n_bins, :]
-    y_sub = y[:n_bins, :]
+    fft_len = x.shape[1] if fft_len is None else fft_len
+    window_arr = np.hamming(fft_len) if window is None else window
 
-    num_sum = np.zeros(half_len, dtype=complex)
-    den_x_sum = np.zeros(half_len, dtype=float)
-    den_y_sum = np.zeros(half_len, dtype=float)
-
-    global_peak_power = np.max(np.abs(x) ** 2)
+    n_bins = x.shape[0]
+    num_sum = np.zeros(fft_len, dtype=complex)
+    den_x_sum = np.zeros(fft_len, dtype=float)
+    den_y_sum = np.zeros(fft_len, dtype=float)
 
     for k in range(n_bins):
-        # Skip range bins in the noise floor
-        bin_power = np.mean(np.abs(x_sub[k]) ** 2)
-        if bin_power < (snr_threshold * global_peak_power):
-            continue
+        x_win = x[k] * window_arr
+        y_win = y[k] * window_arr
 
-        x_win = x_sub[k] * window_arr
-        y_win = y_sub[k] * window_arr
-
-        X_fft = np.fft.fft(x_win, n=fft_len)[:half_len]
-        Y_fft = np.fft.fft(y_win, n=fft_len)[:half_len]
+        X_fft = fft(x_win, n=fft_len)
+        Y_fft = fft(y_win, n=fft_len)
 
         num_sum += Y_fft * np.conj(X_fft)
         den_x_sum += np.real(X_fft * np.conj(X_fft))
