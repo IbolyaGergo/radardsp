@@ -179,7 +179,7 @@ def compute_median_ratio_spectrum(
     b: np.ndarray,
     a: np.ndarray,
     n_bins: int = 3165,
-    fft_len: int = 256,
+    fft_len: int | None = None,
     window: np.ndarray | None = None,
     snr_threshold: float = 1e-6,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -187,6 +187,7 @@ def compute_median_ratio_spectrum(
     Compute empirical median ratio spectrum (|Y|/|X| in dB) across range bins
     and compare with theoretical freqz response.
     """
+    fft_len = x.shape[1] if fft_len is None else fft_len
     n_bins, window_arr, half_len, freqs, h_db = _prepare_spectrum_computation(
         x, b, a, n_bins, fft_len, window
     )
