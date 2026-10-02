@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.signal import lfilter
+from scipy.signal import lfilter, freqz
 from radarsig.fpga_analysis import (
     analyze_iq_data,
     compute_median_ratio_spectrum,
@@ -39,7 +39,11 @@ def test_compute_spectral_methods():
     y = y_real + 1j * y_imag
 
     # Test median ratio spectrum
-    freqs, h_db, median_ratio_db = compute_median_ratio_spectrum(x, y, b, a)
+    fft_len = x.shape[1]
+    w, h = freqz(b, a, worN=fft_len, whole=True)
+    h_db = np.fft.fftshift(20 * np.log10(np.abs(h)))
+    median_ratio_raw = compute_median_ratio_spectrum(x, y, fft_len=fft_len)
+    median_ratio_db = np.fft.fftshift(median_ratio_raw)
     rmse_median = np.sqrt(np.mean((h_db - median_ratio_db) ** 2))
     assert rmse_median < 1.5
 

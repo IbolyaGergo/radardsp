@@ -4,7 +4,8 @@ from dataclasses import dataclass
 import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
-from scipy.signal import get_window
+from scipy.fft import fft, fftshift
+from scipy.signal import get_window, freqz
 from radarsig.fpga_io import (
     load_fpga_ram_binary_to_iq,
     load_filter_coeffs_from_binary,
@@ -139,12 +140,22 @@ def process_pair(pair_id, i_path, q_path, method, window_names, out_file):
 
     method_meta = ANALYSIS_METHODS[method]
 
-    # Store results for each window: list of (window_name, freqs, h_db, emp_data)
     results_to_plot = []
+    fft_len = x.shape[1]
 
     for window_name in window_names:
-        window_arr = get_window(window_name, x.shape[1])
-        freqs, h_db, emp_data = method_meta["func"](x, y, b, a, window=window_arr)
+        window_arr = get_window(window_name, fft_len)
+
+        if method == "median":
+            # Separate theoretical filter response computation over whole unit circle [0, 2pi], shifted to [-pi, pi]
+            w, h = freqz(b, a, worN=fft_len, whole=True)
+            h_db = fftshift(20 * np.log10(np.abs(h)))
+            freqs = np.linspace(-np.pi, np.pi, fft_len)
+
+            emp_raw = method_meta["func"](x, y, window=window_arr)
+            emp_data = fftshift(emp_raw)
+        else:
+            freqs, h_db, emp_data = method_meta["func"](x, y, b, a, window=window_arr)
 
         results_to_plot.append(
             FPGASpectrumResult(

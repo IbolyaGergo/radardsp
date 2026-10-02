@@ -176,21 +176,19 @@ def _prepare_spectrum_computation(
 def compute_median_ratio_spectrum(
     x: np.ndarray,
     y: np.ndarray,
-    b: np.ndarray,
-    a: np.ndarray,
     n_bins: int = 3165,
     fft_len: int | None = None,
     window: np.ndarray | None = None,
     snr_threshold: float = 1e-6,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> np.ndarray:
     """
     Compute empirical median ratio spectrum (|Y|/|X| in dB) across range bins
     and compare with theoretical freqz response.
     """
     fft_len = x.shape[1] if fft_len is None else fft_len
-    n_bins, window_arr, half_len, freqs, h_db = _prepare_spectrum_computation(
-        x, b, a, n_bins, fft_len, window
-    )
+    n_bins = min(n_bins, x.shape[0])
+    window_arr = np.hamming(x.shape[1]) if window is None else window
+
     x = x[:n_bins, :]
     y = y[:n_bins, :]
 
@@ -204,15 +202,15 @@ def compute_median_ratio_spectrum(
     x_win = x_valid * window_arr
     y_win = y_valid * window_arr
 
-    x_fft = fft(x_win, n=fft_len)[:, :half_len]
-    y_fft = fft(y_win, n=fft_len)[:, :half_len]
+    x_fft = fft(x_win, n=fft_len)
+    y_fft = fft(y_win, n=fft_len)
 
     with np.errstate(divide="ignore", invalid="ignore"):
         response_db = 20 * (np.log10(np.abs(y_fft)) - np.log10(np.abs(x_fft)))
 
     median_ratio_db = np.median(response_db, axis=0)
 
-    return freqs, h_db, median_ratio_db
+    return median_ratio_db
 
 
 # compute_csd_spectrum() {{{1

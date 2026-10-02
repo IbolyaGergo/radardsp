@@ -55,13 +55,11 @@ def main():
 
     # Get theoretical reference curve
     fft_len = 256
-    half_len = fft_len // 2 + 1
-
-    w, h = freqz(b, a, worN=half_len)
+    w, h = freqz(b, a, worN=fft_len, whole=True)
     with np.errstate(divide="ignore", invalid="ignore"):
-        h_db = 20 * np.log10(np.abs(h))
+        h_db = np.fft.fftshift(20 * np.log10(np.abs(h)))
 
-    freqs = np.linspace(0, np.pi, half_len)
+    freqs = np.fft.fftshift(np.where(w > np.pi, w - 2 * np.pi, w))
 
     ax.plot(freqs, h_db, label="Theoretical H(dB) [freqz]", color="black", linewidth=2.5, zorder=10)
 
@@ -76,9 +74,10 @@ def main():
         x_chunk = x[:, start:end]
         y_chunk = y[:, start:end]
 
-        freqs, _, median_ratio_db = compute_median_ratio_spectrum(
-            x_chunk, y_chunk, b, a, n_bins=n_bins, fft_len=256
+        median_ratio_raw = compute_median_ratio_spectrum(
+            x_chunk, y_chunk, n_bins=n_bins, fft_len=fft_len
         )
+        median_ratio_db = np.fft.fftshift(median_ratio_raw)
 
         ax.plot(
             freqs,
