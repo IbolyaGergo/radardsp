@@ -176,7 +176,6 @@ def _prepare_spectrum_computation(
 def compute_median_ratio_spectrum(
     x: np.ndarray,
     y: np.ndarray,
-    n_bins: int = 3165,
     fft_len: int | None = None,
     window: np.ndarray | None = None,
     snr_threshold: float = 1e-6,
@@ -186,7 +185,6 @@ def compute_median_ratio_spectrum(
     and compare with theoretical freqz response.
     """
     fft_len = x.shape[1] if fft_len is None else fft_len
-    n_bins = min(n_bins, x.shape[0])
 
     x_fft = fft(x, n=fft_len)
     y_fft = fft(y, n=fft_len)
