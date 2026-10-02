@@ -151,27 +151,6 @@ def analyze_iq_pair(
     }
 
 
-# _prepare_spectrum_computation() {{{1
-def _prepare_spectrum_computation(
-    x: np.ndarray,
-    b: np.ndarray,
-    a: np.ndarray,
-    n_bins: int,
-    fft_len: int,
-    window: np.ndarray | None,
-) -> tuple[int, np.ndarray, int, np.ndarray, np.ndarray]:
-    n_bins = min(n_bins, x.shape[0])
-    window_arr = np.hamming(x.shape[1]) if window is None else window
-    half_len = fft_len // 2 + 1
-    freqs = np.linspace(0, np.pi, half_len)
-
-    w, h = freqz(b, a, worN=half_len)
-    with np.errstate(divide="ignore", invalid="ignore"):
-        h_db = 20 * np.log10(np.abs(h))
-
-    return n_bins, window_arr, half_len, freqs, h_db
-
-
 # compute_median_ratio_spectrum() {{{1
 def compute_median_ratio_spectrum(
     x: np.ndarray,
