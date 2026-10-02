@@ -75,44 +75,6 @@ def plot_median_spectrum(ax, results_list, pair_id):
     ax.legend(lines, labels, loc="lower right")
 
 
-def plot_coherence_spectrum(ax, results_list, pair_id):
-    """Plot magnitude response with dual-axis coherence."""
-    base = results_list[0]
-    line1 = ax.plot(
-        base.freqs,
-        base.h_db,
-        label="Theoretical ($|H|$) - freqz",
-        color="black",
-        linewidth=2,
-        linestyle="--",
-    )
-    ax.set_ylabel("Magnitude [dB]", color="black")
-    ax.tick_params(axis="y", labelcolor="black")
-
-    ax2 = ax.twinx()
-    colors = plt.cm.tab10(np.linspace(0, 1, len(results_list)))
-    coherence_lines = []
-
-    for res, color in zip(results_list, colors):
-        line = ax2.plot(
-            res.freqs,
-            res.emp_data,
-            label=r"Coherence ($\gamma_{xy}^2$) " + f"[{res.window_name}]",
-            color=color,
-            linewidth=2,
-            alpha=0.8,
-        )
-        coherence_lines.extend(line)
-
-    ax2.set_ylabel("Coherence", color="green")
-    ax2.tick_params(axis="y", labelcolor="green")
-    ax2.set_ylim(-0.05, 1.05)
-
-    lines = line1 + coherence_lines
-    labels = [l.get_label() for l in lines]
-    ax.legend(lines, labels, loc="lower right")
-
-
 ANALYSIS_METHODS = {
     "median": {
         "func": compute_median_ratio_spectrum,

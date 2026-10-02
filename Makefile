@@ -47,7 +47,6 @@ RESPONSE_OUT_DIR := results/fpga_filter_response
 RESPONSE_SCRIPT := scripts/fpga_analyze_filter_response.py
 MEDIAN_PLOTS := $(patsubst %, $(RESPONSE_OUT_DIR)/median/%.png, $(PAIR_IDS))
 CSD_PLOTS := $(patsubst %, $(RESPONSE_OUT_DIR)/csd/%.png, $(PAIR_IDS))
-COHERENCE_PLOTS := $(patsubst %, $(RESPONSE_OUT_DIR)/coherence/%.png, $(PAIR_IDS))
 
 WINDOW ?= hamming
 FPGA_FLAGS := --window $(WINDOW)
@@ -60,21 +59,14 @@ $(RESPONSE_OUT_DIR)/csd/%.png: $(RESPONSE_SCRIPT) $(IQ_DIR)/%_i.data $(IQ_DIR)/%
 	@mkdir -p $(dir $@)
 	$(PYTHON) $< --method csd --pair $* --out $@ $(FPGA_FLAGS)
 
-$(RESPONSE_OUT_DIR)/coherence/%.png: $(RESPONSE_SCRIPT) $(IQ_DIR)/%_i.data $(IQ_DIR)/%_q.data
-	@mkdir -p $(dir $@)
-	$(PYTHON) $< --method coherence --pair $* --out $@ $(FPGA_FLAGS)
-
 .PHONY: fpga-analyze-filter-response-median
 fpga-analyze-filter-response-median: $(MEDIAN_PLOTS) ## Run FPGA median IIR filter spectrum analysis
 
 .PHONY: fpga-analyze-filter-response-csd
 fpga-analyze-filter-response-csd: $(CSD_PLOTS) ## Run FPGA CSD IIR filter spectrum analysis
 
-.PHONY: fpga-analyze-filter-response-coherence
-fpga-analyze-filter-response-coherence: $(COHERENCE_PLOTS) ## Run FPGA coherence analysis
-
 .PHONY: fpga-analyze-filter-response-all
-fpga-analyze-filter-response-all: fpga-analyze-filter-response-median fpga-analyze-filter-response-csd fpga-analyze-filter-response-coherence ## Run all FPGA spectral analyses
+fpga-analyze-filter-response-all: fpga-analyze-filter-response-median fpga-analyze-filter-response-csd ## Run all FPGA spectral analyses
 
 # --- FPGA Filter Residuals Analysis ---
 RESIDUALS_OUT_DIR := results/fpga_filter_residuals
