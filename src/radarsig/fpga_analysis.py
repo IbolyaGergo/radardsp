@@ -12,8 +12,8 @@ from radarsig.fpga_io import (
 from scipy.signal import freqz
 
 
-# analyze_iq_data() {{{1
-def analyze_iq_data(
+# compute_filter_residual() {{{1
+def compute_filter_residual(
     x: np.ndarray,
     y: np.ndarray,
     b: np.ndarray,
@@ -97,8 +97,8 @@ def _compute_metrics(err_rel: np.ndarray) -> dict:
     }
 
 
-# analyze_iq_pair() {{{1
-def analyze_iq_pair(
+# analyze_iq_filter_residual() {{{1
+def analyze_iq_filter_residual(
     i_path: Path | str,
     q_path: Path | str,
     n_bins: int = 3165,
@@ -122,7 +122,7 @@ def analyze_iq_pair(
     n_pulse : int, default=14
         Number of pulses for data reshaping.
     threshold : float, default=1e-3
-        Error threshold for identifying failing range bins in analyze_iq_data.
+        Error threshold for identifying failing range bins in compute_filter_residual.
 
     Returns
     -------
@@ -139,7 +139,7 @@ def analyze_iq_pair(
     x = x_loaded[:n_bins, :]
     y = y_loaded[:n_bins, :]
 
-    results = analyze_iq_data(x, y, b, a, threshold=threshold)
+    results = compute_filter_residual(x, y, b, a, threshold=threshold)
 
     pair_id = i_path.stem.removesuffix("_i")
 

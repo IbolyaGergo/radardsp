@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.signal import lfilter, freqz
 from radarsig.fpga_analysis import (
-    analyze_iq_data,
+    compute_filter_residual,
     compute_median_ratio_spectrum,
     compute_csd_spectrum,
     compute_coherence,
@@ -20,7 +20,7 @@ def test_analyze_iq_data():
     y[:, :-1] = b[0] * x[:, :-1] + b[1] * x[:, 1:]
     y[:, -1] = b[0] * x[:, -1]
 
-    results = analyze_iq_data(x, y, b, a, threshold=1e-3)
+    results = compute_filter_residual(x, y, b, a, threshold=1e-3)
     for part in ("real", "imag"):
         err_rel_max = np.max(np.abs(results[part]["err_rel"]))
         assert err_rel_max < 1e-12

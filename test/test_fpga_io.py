@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 from pathlib import Path
-from radarsig.fpga_analysis import analyze_iq_pair
+from radarsig.fpga_analysis import analyze_iq_filter_residual
 from radarsig.fpga_io import (
     load_binary_to_array,
     process_channel_data,
@@ -74,7 +74,7 @@ def test_analyze_iq_pair(tmp_path):
     dummy_data.tofile(i_file)
     dummy_data.tofile(q_file)
 
-    res = analyze_iq_pair(i_file, q_file, offset_dtype=512, n_pulse=14)
+    res = analyze_iq_filter_residual(i_file, q_file, offset_dtype=512, n_pulse=14)
 
     assert res["pair_id"] == "000"
     for part in ["real", "imag"]:

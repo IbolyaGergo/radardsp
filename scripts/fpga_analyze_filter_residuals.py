@@ -2,7 +2,7 @@
 import argparse
 import sys
 from pathlib import Path
-from radarsig.fpga_analysis import analyze_iq_pair
+from radarsig.fpga_analysis import analyze_iq_filter_residual
 
 
 def main():
@@ -37,7 +37,7 @@ def main():
         sys.exit(1)
 
     try:
-        res = analyze_iq_pair(i_path, q_path)
+        res = analyze_iq_filter_residual(i_path, q_path)
         r = res["real"]
         i = res["imag"]
     except Exception as e:
