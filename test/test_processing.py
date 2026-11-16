@@ -5,6 +5,7 @@ from radarsig.processing import (
     compute_pulse_pair_mean,
     compute_signal_quality_index,
     compute_pulse_pair_variance,
+    compute_pulse_pair_width,
     compute_pulse_pair_snr,
 )
 from radarsig.signal_generator import generate_gaussian_doppler_signal
@@ -73,37 +74,59 @@ def test_compute_signal_quality_index():
 def test_compute_pulse_pair_variance():
     n_pulses = 1024
     prf = 100.0
-    fd = 15.0
-    true_freq_variance = 9.0  # Hz^2
+    true_mean = 15.0
+    width = 3.0  # Hz
 
     # Generate signal
     iq = generate_gaussian_doppler_signal(
         n_pulses=n_pulses,
         prf=prf,
-        fd=fd,
-        true_freq_variance=true_freq_variance,
+        mean=true_mean,
+        width=width,
         seed=42,
     )
 
     # Estimate variance
     est_variance = compute_pulse_pair_variance(iq, prf=prf)
-    np.testing.assert_allclose(est_variance, true_freq_variance, rtol=0.05)
+    np.testing.assert_allclose(est_variance, width**2, rtol=0.05)
+
+
+# test_compute_pulse_pair_width() {{{1
+def test_compute_pulse_pair_width():
+    n_pulses = 1024
+    prf = 100.0
+    true_mean = 15.0
+    width = 3.0  # Hz
+
+    # Generate signal
+    iq = generate_gaussian_doppler_signal(
+        n_pulses=n_pulses,
+        prf=prf,
+        mean=true_mean,
+        width=width,
+        seed=42,
+    )
+
+    # Estimate width
+    est_width = compute_pulse_pair_width(iq, prf=prf)
+    assert np.all(est_width >= 0.0)
+    np.testing.assert_allclose(est_width, width, rtol=0.05)
 
 
 # test_compute_pulse_pair_snr() {{{1
 def test_compute_pulse_pair_snr():
     n_pulses = 1024
     prf = 100.0
-    fd = 15.0
-    true_freq_variance = 9.0  # Hz^2
+    true_mean = 15.0
+    width = 3.0  # Hz
     true_snr = 100
 
     # Generate signal
     iq = generate_gaussian_doppler_signal(
         n_pulses=n_pulses,
         prf=prf,
-        fd=fd,
-        true_freq_variance=true_freq_variance,
+        mean=true_mean,
+        width=width,
         snr=true_snr,
         seed=42,
     )
@@ -117,8 +140,8 @@ def test_compute_pulse_pair_nd():
     n_range = 100
     n_pulses = 1024
     prf = 100.0
-    fd = 15.0
-    true_freq_variance = 9.0
+    true_mean = 15.0
+    width = 3.0  # Hz
     true_snr = 100
 
     # Generate 2D IQ data of shape (n_range, n_pulses)
@@ -127,8 +150,8 @@ def test_compute_pulse_pair_nd():
             generate_gaussian_doppler_signal(
                 n_pulses=n_pulses,
                 prf=prf,
-                fd=fd,
-                true_freq_variance=true_freq_variance,
+                mean=true_mean,
+                width=width,
                 snr=true_snr,
                 seed=42 + i,
             )
@@ -138,7 +161,7 @@ def test_compute_pulse_pair_nd():
 
     est_variance = compute_pulse_pair_variance(iq_2d, prf=prf)
     assert est_variance.shape == (n_range,)
-    np.testing.assert_allclose(est_variance, true_freq_variance, rtol=0.3)
+    np.testing.assert_allclose(est_variance, width**2, rtol=0.3)
 
     est_snr = compute_pulse_pair_snr(iq_2d)
     assert est_snr.shape == (n_range,)

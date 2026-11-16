@@ -5,19 +5,19 @@ from radarsig.signal_generator import (
 )
 
 
-# test_generate_gaussian_doppler_signal_variance() {{{1
-def test_generate_gaussian_doppler_signal_variance():
+# test_generate_gaussian_doppler_signal_width() {{{1
+def test_generate_gaussian_doppler_signal_width():
     n_pulses = 1024
     prf = 100.0
-    fd = 15.0
-    true_freq_variance = 9.0  # Hz^2
+    true_mean = 15.0
+    width = 3.0  # Hz
     seed = 42
 
     iq = generate_gaussian_doppler_signal(
         n_pulses=n_pulses,
         prf=prf,
-        fd=fd,
-        true_freq_variance=true_freq_variance,
+        mean=true_mean,
+        width=width,
         seed=seed,
     )
 
@@ -34,5 +34,5 @@ def test_generate_gaussian_doppler_signal_variance():
     est_variance = np.sum(psd_norm * (freqs - mean_freq) ** 2)
 
     # Verify center frequency and spectral variance
-    np.testing.assert_allclose(mean_freq, fd, atol=2.0)
-    np.testing.assert_allclose(est_variance, true_freq_variance, rtol=0.01)
+    np.testing.assert_allclose(mean_freq, true_mean, atol=2.0)
+    np.testing.assert_allclose(est_variance, width**2, rtol=0.01)

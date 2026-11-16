@@ -6,20 +6,21 @@ from scipy.fft import fft, ifft, fftfreq
 def generate_gaussian_doppler_signal(
     n_pulses: int,
     prf: float,
-    fd: float,
-    true_freq_variance: float,
+    mean: float,
+    width: float,
     snr: float | None = None,
     seed: int | None = None,
 ) -> np.ndarray:
     """
     Generate a complex time-series (pulse returns) whose power spectral density
-    is a Gaussian centered at Doppler frequency fd, with specified variance.
+    is a Gaussian centered at Doppler frequency mean, with specified width.
 
     Parameters:
     - n_pulses: Number of pulse samples
     - prf: Pulse Repetition Frequency (Hz)
-    - fd: Mean Doppler frequency (Hz)
-    - true_freq_variance: Frequency variance (Hz^2) of the Gaussian spectrum
+    - mean: Mean Doppler frequency (Hz)
+    - width: Spectral width (standard deviation, Hz) of the Gaussian spectrum.
+      Equivalently, the frequency variance is width**2 (Hz^2).
     - snr: Signal To Noise ratio defined as S_0 / N, where S_0 is the signal power and N is the
       noise power
     - seed: Random seed for reproducibility (optional)
@@ -35,7 +36,7 @@ def generate_gaussian_doppler_signal(
     freqs = fftfreq(n_pulses, d=dt)
 
     # Desired Gaussian PSD centered at 0 Hz
-    psd = np.exp(-(freqs**2) / (2 * true_freq_variance))
+    psd = np.exp(-(freqs**2) / (2 * width**2))
     s0_power = np.sum(psd)
 
     if snr is not None:
@@ -56,6 +57,6 @@ def generate_gaussian_doppler_signal(
     iq_base = ifft(shaped_freq) * np.sqrt(n_pulses)
 
     # Apply Doppler shift (moving target)
-    iq = iq_base * np.exp(1j * 2 * np.pi * fd * t)
+    iq = iq_base * np.exp(1j * 2 * np.pi * mean * t)
 
     return iq

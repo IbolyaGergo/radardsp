@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from radarsig.signal_generator import generate_gaussian_doppler_signal
 from radarsig.processing import (
     compute_pulse_pair_mean,
-    compute_pulse_pair_variance,
+    compute_pulse_pair_width,
     compute_pulse_pair_snr,
 )
 
@@ -17,7 +17,7 @@ PRF = 2000.0
 N_MC = 200  # number of Monte Carlo runs
 N_PULSES_LIST = np.arange(10, 1001, 10)
 
-TRUE_STD = PRF / 10.0
+TRUE_WIDTH = PRF / 10.0
 TRUE_MEAN = 0.0
 
 ESTIMATOR_CONFIGS = {
@@ -34,10 +34,8 @@ ESTIMATOR_CONFIGS = {
     },
     "width": {
         "title": "Pulse-Pair Spectral Width Estimator Convergence",
-        "compute_est": lambda iq, prf: np.sqrt(
-            np.maximum(0.0, compute_pulse_pair_variance(iq, prf=prf))
-        ),
-        "true_value": lambda snr: TRUE_STD,
+        "compute_est": lambda iq, prf: compute_pulse_pair_width(iq, prf=prf),
+        "true_value": lambda snr: TRUE_WIDTH,
         "compute_norm_bias": lambda mean, true, prf: np.abs(mean - true) / prf,
         "compute_norm_std": lambda std, prf: std / prf,
         "labels": {
@@ -83,8 +81,8 @@ def run_monte_carlo(
         iq = generate_gaussian_doppler_signal(
             n_pulses=n_pulses,
             prf=prf,
-            fd=TRUE_MEAN,
-            true_freq_variance=(TRUE_STD) ** 2,
+            mean=TRUE_MEAN,
+            width=TRUE_WIDTH,
             snr=linear_snr,
             seed=i,
         )

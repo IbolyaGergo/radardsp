@@ -31,7 +31,7 @@ def compute_pulse_phase_difference(iq_data: np.ndarray) -> np.ndarray:
 
 
 # compute_pulse_pair_mean() {{{1
-def compute_pulse_pair_mean(iq_data: np.ndarray, prf: float) -> np.ndarray:
+def compute_pulse_pair_mean(iq_data: np.ndarray, prf: float) -> float | np.ndarray:
     """
     Estimate frequency mean from complex pulse returns using lag-1 autocorrelation pulse-pair
     method.
@@ -67,7 +67,7 @@ def compute_signal_quality_index(iq_data: np.ndarray) -> np.ndarray:
 
 
 # compute_pulse_pair_variance() {{{1
-def compute_pulse_pair_variance(iq: np.ndarray, prf: float) -> float:
+def compute_pulse_pair_variance(iq: np.ndarray, prf: float) -> float | np.ndarray:
     """
     Estimate frequency variance from complex pulse returns using lag-1 and lag-2
     autocorrelation pulse-pair method.
@@ -92,8 +92,30 @@ def compute_pulse_pair_variance(iq: np.ndarray, prf: float) -> float:
     return variance
 
 
+# compute_pulse_pair_width() {{{1
+def compute_pulse_pair_width(iq: np.ndarray, prf: float) -> float | np.ndarray:
+    """
+    Estimate spectral width (standard deviation, Hz) from complex pulse returns.
+
+    Thin wrapper around compute_pulse_pair_variance(): the width is the square
+    root of the estimated variance. The estimate is clipped at zero because the
+    log-ratio variance estimator can be slightly negative under noise.
+
+    Note: sqrt of a noisy variance estimate is biased for the standard deviation.
+
+    Parameters:
+    - iq: Complex time-series array of pulse returns
+    - prf: Pulse Repetition Frequency (Hz)
+
+    Returns:
+    - estimated_width: Estimated frequency standard deviation (Hz)
+    """
+    variance = compute_pulse_pair_variance(iq, prf=prf)
+    return np.sqrt(np.maximum(variance, 0.0))
+
+
 # compute_pulse_pair_snr() {{{1
-def compute_pulse_pair_snr(iq: np.ndarray) -> float:
+def compute_pulse_pair_snr(iq: np.ndarray) -> float | np.ndarray:
     # Autocorrelation at lag 0, 1 and 2
     r0 = np.mean(iq * np.conj(iq), axis=-1)
     r1 = np.mean(iq[..., :-1] * np.conj(iq[..., 1:]), axis=-1)
