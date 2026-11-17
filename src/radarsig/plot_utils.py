@@ -83,6 +83,7 @@ def plot_magnitude_spectrum(
     sample_rate: float | None = None,
     scale: Literal["linear", "dB"] = "linear",
     window: str | tuple | np.ndarray | None = None,
+    pad_to: int | None = None,
     ax: plt.Axes | None = None,
     label: str | None = None,
 ) -> tuple[plt.Figure, plt.Axes]:
@@ -96,11 +97,16 @@ def plot_magnitude_spectrum(
     Args:
         signal: 1D complex or real time-series.
         sample_rate: Sampling rate in Hz. If None, the x-axis is in FFT bins
-                     spanning -N/2 to N/2. If given, the x-axis is in Hz.
+                     spanning -N/2 to N/2, where N is the FFT length. If given,
+                     the x-axis is in Hz.
         scale: "linear" for magnitude, "dB" for 20*log10(magnitude).
         window: Window applied before the FFT. None means rectangular. Accepts
                 any window name/tuple understood by scipy.signal.get_window, or
-                a 1D array of length N. No coherent-gain normalization is applied.
+                a 1D array matching the signal length. No coherent-gain
+                normalization is applied.
+        pad_to: FFT length. If greater than the signal length, zero-pad before
+                the FFT; must be at least the signal length. If None, use the
+                signal length.
         ax: Axes to draw on. If None, a new figure and axes are created.
         label: Optional line label, shown in a legend when provided.
 
@@ -114,6 +120,9 @@ def plot_magnitude_spectrum(
         raise ValueError(f"scale must be 'linear' or 'dB', got {scale!r}")
 
     n_samples = signal.size
+    if pad_to is not None and pad_to < n_samples:
+        raise ValueError(f"pad_to must be >= signal length {n_samples}, got {pad_to}")
+    n_fft = n_samples if pad_to is None else pad_to
 
     if window is None:
         window_values = None
@@ -125,13 +134,13 @@ def plot_magnitude_spectrum(
         window_values = get_window(window, n_samples, fftbins=True)
 
     signal_for_fft = signal if window_values is None else signal * window_values
-    spectrum = np.fft.fftshift(np.fft.fft(signal_for_fft))
+    spectrum = np.fft.fftshift(np.fft.fft(signal_for_fft, n=n_fft))
 
     if sample_rate is None:
-        freqs = np.fft.fftshift(np.fft.fftfreq(n_samples)) * n_samples
+        freqs = np.fft.fftshift(np.fft.fftfreq(n_fft)) * n_fft
         xlabel = "Frequency [bins]"
     else:
-        freqs = np.fft.fftshift(np.fft.fftfreq(n_samples, d=1.0 / sample_rate))
+        freqs = np.fft.fftshift(np.fft.fftfreq(n_fft, d=1.0 / sample_rate))
         xlabel = "Frequency [Hz]"
 
     magnitude = np.abs(spectrum)

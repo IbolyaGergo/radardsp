@@ -76,6 +76,26 @@ def test_plot_magnitude_spectrum_db_scale():
     assert ax.get_ylabel() == "Magnitude [dB]"
 
 
+# test_plot_magnitude_spectrum_pad_to() {{{1
+def test_plot_magnitude_spectrum_pad_to():
+    b = np.array([0.25, 0.5, 0.25])
+    pad_to = 64
+
+    _, ax = plot_magnitude_spectrum(b, pad_to=pad_to)
+
+    freqs, magnitude = ax.lines[0].get_xydata().T
+    expected = np.abs(np.fft.fftshift(np.fft.fft(b, n=pad_to)))
+    np.testing.assert_allclose(magnitude, expected)
+    assert freqs[0] == -pad_to / 2
+    assert freqs[-1] == pad_to / 2 - 1
+
+
+# test_plot_magnitude_spectrum_pad_to_too_small() {{{1
+def test_plot_magnitude_spectrum_pad_to_too_small():
+    with pytest.raises(ValueError, match="pad_to must be"):
+        plot_magnitude_spectrum(np.ones(8), pad_to=4)
+
+
 # test_plot_magnitude_spectrum_window() {{{1
 def test_plot_magnitude_spectrum_window():
     n_samples = 16
