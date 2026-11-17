@@ -183,8 +183,25 @@ def test_plot_magnitude_spectrum_ratio_sample_rate():
 
 # test_plot_magnitude_spectrum_ratio_shape_mismatch() {{{1
 def test_plot_magnitude_spectrum_ratio_shape_mismatch():
-    with pytest.raises(ValueError, match="same shape"):
+    with pytest.raises(ValueError, match="same shape unless pad_to"):
         plot_magnitude_spectrum_ratio(np.ones(4), np.ones(5))
+
+    with pytest.raises(ValueError, match="both signal lengths"):
+        plot_magnitude_spectrum_ratio(np.ones(4), np.ones(5), pad_to=4)
+
+
+# test_plot_magnitude_spectrum_ratio_unequal_lengths_with_pad_to() {{{1
+def test_plot_magnitude_spectrum_ratio_unequal_lengths_with_pad_to():
+    h = np.array([1.0, 0.5])
+    x = np.random.default_rng(4).normal(size=20)
+    y = np.convolve(x, h, mode="full")
+    pad_to = y.size
+
+    _, ax = plot_magnitude_spectrum_ratio(x, y, pad_to=pad_to)
+
+    _, ratio_db = ax.lines[0].get_xydata().T
+    expected_db = 20 * np.log10(np.abs(np.fft.fftshift(np.fft.fft(h, n=pad_to))))
+    np.testing.assert_allclose(ratio_db, expected_db)
 
 
 # test_plot_magnitude_spectrum_ratio_all_zero_bins() {{{1

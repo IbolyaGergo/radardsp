@@ -200,10 +200,12 @@ def plot_magnitude_spectrum_ratio(
 
     Args:
         reference: 1D signal used as the denominator.
-        test: 1D signal used as the numerator; must match reference's shape.
+        test: 1D signal used as the numerator. May differ in length from
+              reference only when pad_to is given, in which case both are
+              zero-padded to that common FFT length.
         sample_rate: Sampling rate in Hz. If None, the x-axis is in FFT bins.
         window: Window applied before the FFT (see plot_magnitude_spectrum).
-        pad_to: FFT length; must be at least the signal length.
+        pad_to: FFT length; must be at least both signal lengths.
         ax: Axes to draw on. If None, a new figure and axes are created.
         label: Optional line label, shown in a legend when provided.
 
@@ -212,9 +214,15 @@ def plot_magnitude_spectrum_ratio(
     """
     reference = np.asarray(reference)
     test = np.asarray(test)
-    if reference.shape != test.shape:
+    if reference.shape != test.shape and pad_to is None:
         raise ValueError(
-            f"reference and test must have the same shape, got {reference.shape} and {test.shape}"
+            "reference and test must have the same shape unless pad_to is set, "
+            f"got {reference.shape} and {test.shape}"
+        )
+    if pad_to is not None and pad_to < max(reference.size, test.size):
+        raise ValueError(
+            f"pad_to must be >= both signal lengths ({reference.size}, {test.size}), "
+            f"got {pad_to}"
         )
 
     eps = 1e-12
