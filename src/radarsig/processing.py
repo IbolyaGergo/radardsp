@@ -130,6 +130,24 @@ def compute_pulse_pair_snr(iq: np.ndarray) -> float | np.ndarray:
     return snr
 
 
+# compute_pulse_pair_snr_db() {{{1
+def compute_pulse_pair_snr_db(iq: np.ndarray) -> float | np.ndarray:
+    """
+    Estimate SNR in dB from complex pulse returns.
+
+    Thin wrapper around compute_pulse_pair_snr(): the linear ratio is floored at
+    1e-9 to avoid log(0) and then converted with 10*log10().
+
+    Parameters:
+    - iq: Complex time-series array of pulse returns
+
+    Returns:
+    - estimated_snr_db: Estimated SNR (dB)
+    """
+    snr = compute_pulse_pair_snr(iq)
+    return 10.0 * np.log10(np.maximum(snr, 1e-9))
+
+
 # compute_fft() {{{1
 def compute_fft(
     x: np.ndarray,

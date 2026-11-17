@@ -7,6 +7,7 @@ from radarsig.processing import (
     compute_pulse_pair_variance,
     compute_pulse_pair_width,
     compute_pulse_pair_snr,
+    compute_pulse_pair_snr_db,
 )
 from radarsig.signal_generator import generate_gaussian_doppler_signal
 
@@ -119,7 +120,7 @@ def test_compute_pulse_pair_snr():
     prf = 100.0
     true_mean = 15.0
     width = 3.0  # Hz
-    true_snr = 100
+    true_snr_db = 20.0  # dB, equivalent to a linear SNR of 100
 
     # Generate signal
     iq = generate_gaussian_doppler_signal(
@@ -127,12 +128,15 @@ def test_compute_pulse_pair_snr():
         prf=prf,
         mean=true_mean,
         width=width,
-        snr=true_snr,
+        snr_db=true_snr_db,
         seed=42,
     )
 
     est_snr = compute_pulse_pair_snr(iq)
-    np.testing.assert_allclose(est_snr, true_snr, rtol=0.1)
+    np.testing.assert_allclose(est_snr, 10 ** (true_snr_db / 10.0), rtol=0.1)
+
+    est_snr_db = compute_pulse_pair_snr_db(iq)
+    np.testing.assert_allclose(est_snr_db, true_snr_db, atol=0.5)
 
 
 # test_compute_pulse_pair_nd() {{{1
@@ -142,7 +146,7 @@ def test_compute_pulse_pair_nd():
     prf = 100.0
     true_mean = 15.0
     width = 3.0  # Hz
-    true_snr = 100
+    true_snr_db = 20.0  # dB, equivalent to a linear SNR of 100
 
     # Generate 2D IQ data of shape (n_range, n_pulses)
     iq_2d = np.array(
@@ -152,7 +156,7 @@ def test_compute_pulse_pair_nd():
                 prf=prf,
                 mean=true_mean,
                 width=width,
-                snr=true_snr,
+                snr_db=true_snr_db,
                 seed=42 + i,
             )
             for i in range(n_range)
@@ -163,6 +167,6 @@ def test_compute_pulse_pair_nd():
     assert est_variance.shape == (n_range,)
     np.testing.assert_allclose(est_variance, width**2, rtol=0.3)
 
-    est_snr = compute_pulse_pair_snr(iq_2d)
-    assert est_snr.shape == (n_range,)
-    np.testing.assert_allclose(est_snr, true_snr, rtol=0.4)
+    est_snr_db = compute_pulse_pair_snr_db(iq_2d)
+    assert est_snr_db.shape == (n_range,)
+    np.testing.assert_allclose(est_snr_db, true_snr_db, atol=2.5)

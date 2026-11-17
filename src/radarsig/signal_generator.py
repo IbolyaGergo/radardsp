@@ -8,7 +8,7 @@ def generate_gaussian_doppler_signal(
     prf: float,
     mean: float,
     width: float,
-    snr: float | None = None,
+    snr_db: float | None = None,
     seed: int | None = None,
 ) -> np.ndarray:
     """
@@ -21,8 +21,8 @@ def generate_gaussian_doppler_signal(
     - mean: Mean Doppler frequency (Hz)
     - width: Spectral width (standard deviation, Hz) of the Gaussian spectrum.
       Equivalently, the frequency variance is width**2 (Hz^2).
-    - snr: Signal To Noise ratio defined as S_0 / N, where S_0 is the signal power and N is the
-      noise power
+    - snr_db: Signal-to-noise ratio in dB, defined as 10*log10(S_0 / N), where S_0 is the
+      signal power and N is the noise power
     - seed: Random seed for reproducibility (optional)
 
     Returns:
@@ -39,8 +39,9 @@ def generate_gaussian_doppler_signal(
     psd = np.exp(-(freqs**2) / (2 * width**2))
     s0_power = np.sum(psd)
 
-    if snr is not None:
-        # snr = S_0 / N => N = S_0 / snr
+    if snr_db is not None:
+        # snr_db = 10 * log10(S_0 / N) => N = S_0 / 10**(snr_db / 10)
+        snr = 10 ** (snr_db / 10.0)
         noise_power = s0_power / snr
         # divide noise across all frequency bins
         noise_floor = noise_power / n_pulses

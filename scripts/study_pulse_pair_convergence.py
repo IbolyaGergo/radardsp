@@ -7,7 +7,7 @@ from radarsig.signal_generator import generate_gaussian_doppler_signal
 from radarsig.processing import (
     compute_pulse_pair_mean,
     compute_pulse_pair_width,
-    compute_pulse_pair_snr,
+    compute_pulse_pair_snr_db,
 )
 
 # ==========================================
@@ -24,7 +24,7 @@ ESTIMATOR_CONFIGS = {
     "mean": {
         "title": "Pulse-Pair Mean Estimator Convergence",
         "compute_est": lambda iq, prf: compute_pulse_pair_mean(iq, prf=prf),
-        "true_value": lambda snr: TRUE_MEAN,
+        "true_value": lambda snr_db: TRUE_MEAN,
         "compute_norm_bias": lambda mean, true, prf: np.abs(mean - true) / prf,
         "compute_norm_std": lambda std, prf: std / prf,
         "labels": {
@@ -35,7 +35,7 @@ ESTIMATOR_CONFIGS = {
     "width": {
         "title": "Pulse-Pair Spectral Width Estimator Convergence",
         "compute_est": lambda iq, prf: compute_pulse_pair_width(iq, prf=prf),
-        "true_value": lambda snr: TRUE_WIDTH,
+        "true_value": lambda snr_db: TRUE_WIDTH,
         "compute_norm_bias": lambda mean, true, prf: np.abs(mean - true) / prf,
         "compute_norm_std": lambda std, prf: std / prf,
         "labels": {
@@ -45,10 +45,8 @@ ESTIMATOR_CONFIGS = {
     },
     "snr": {
         "title": "Pulse-Pair SNR Estimator Convergence",
-        "compute_est": lambda iq, prf: (
-            10.0 * np.log10(np.maximum(1e-9, compute_pulse_pair_snr(iq)))
-        ),
-        "true_value": lambda snr: snr,
+        "compute_est": lambda iq, prf: compute_pulse_pair_snr_db(iq),
+        "true_value": lambda snr_db: snr_db,
         "compute_norm_bias": lambda mean, true, prf: np.abs(mean - true),
         "compute_norm_std": lambda std, prf: std,
         "labels": {
@@ -64,7 +62,7 @@ def run_monte_carlo(
     n_pulses: int,
     prf: float,
     config: dict,
-    snr: float | None,
+    snr_db: float | None,
     n_mc: int,
 ) -> tuple[float, float]:
     """
@@ -72,10 +70,6 @@ def run_monte_carlo(
     of the Doppler property estimator for a given number of pulses.
     """
     estimates = []
-    if snr is None or np.isinf(snr):
-        linear_snr = None
-    else:
-        linear_snr = 10 ** (snr / 10.0)
 
     for i in range(n_mc):
         iq = generate_gaussian_doppler_signal(
@@ -83,7 +77,7 @@ def run_monte_carlo(
             prf=prf,
             mean=TRUE_MEAN,
             width=TRUE_WIDTH,
-            snr=linear_snr,
+            snr_db=snr_db,
             seed=i,
         )
 
@@ -117,7 +111,9 @@ def main():
         help="Output file path for the plot. If not specified, displays interactively.",
     )
     parser.add_argument(
+        "--snr_db",
         "--snr",
+        dest="snr_db",
         nargs="+",
         type=float,
         default=[float("inf"), 20.0, 10.0],
@@ -134,21 +130,21 @@ def main():
     print(f"Running pulse-pair estimator convergence study for estimator: {args.estimator}...")
 
     fig, ax = plt.subplots(figsize=(9, 6))
-    colors = plt.cm.viridis(np.linspace(0.1, 0.9, len(args.snr)))
+    colors = plt.cm.viridis(np.linspace(0.1, 0.9, len(args.snr_db)))
 
-    for snr, color in zip(args.snr, colors):
+    for snr_db, color in zip(args.snr_db, colors):
         results = []
-        snr_label = "Noise-Free" if np.isinf(snr) else f"{snr} dB"
+        snr_label = "Noise-Free" if np.isinf(snr_db) else f"{snr_db} dB"
         print(f"Running study for SNR: {snr_label}...")
 
-        true_value = config["true_value"](snr)
+        true_value = config["true_value"](snr_db)
 
         for n_pulses in N_PULSES_LIST:
             mean_est, std_est = run_monte_carlo(
                 n_pulses=n_pulses,
                 prf=PRF,
                 config=config,
-                snr=snr,
+                snr_db=snr_db,
                 n_mc=N_MC,
             )
             norm_bias = config["compute_norm_bias"](mean_est, true_value, PRF)
