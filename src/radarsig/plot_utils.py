@@ -1,8 +1,8 @@
 import numpy as np
 
 from matplotlib import pyplot as plt
-from scipy.signal import freqz
-from typing import Callable, Any
+from scipy.signal import freqz, get_window
+from typing import Callable, Any, Literal
 
 
 # make_iq_plotter() {{{1
@@ -74,3 +74,83 @@ def plot_filter_response(
         ax_phase.legend()
 
     return axes[0].get_figure(), axes
+
+
+# plot_magnitude_spectrum() {{{1
+def plot_magnitude_spectrum(
+    signal: np.ndarray,
+    *,
+    sample_rate: float | None = None,
+    scale: Literal["linear", "dB"] = "linear",
+    window: str | tuple | np.ndarray | None = None,
+    ax: plt.Axes | None = None,
+    label: str | None = None,
+) -> tuple[plt.Figure, plt.Axes]:
+    """
+    Plot the magnitude spectrum of a 1D signal.
+
+    Unlike matplotlib's ``Axes.magnitude_spectrum``, this function always
+    returns a two-sided, unnormalized spectrum, applies no window by default,
+    floors dB values at 1e-12, and returns the (figure, axes) pair.
+
+    Args:
+        signal: 1D complex or real time-series.
+        sample_rate: Sampling rate in Hz. If None, the x-axis is in FFT bins
+                     spanning -N/2 to N/2. If given, the x-axis is in Hz.
+        scale: "linear" for magnitude, "dB" for 20*log10(magnitude).
+        window: Window applied before the FFT. None means rectangular. Accepts
+                any window name/tuple understood by scipy.signal.get_window, or
+                a 1D array of length N. No coherent-gain normalization is applied.
+        ax: Axes to draw on. If None, a new figure and axes are created.
+        label: Optional line label, shown in a legend when provided.
+
+    Returns:
+        The figure and axes containing the plot.
+    """
+    signal = np.asarray(signal)
+    if signal.ndim != 1:
+        raise ValueError(f"signal must be 1D, got shape {signal.shape}")
+    if scale not in ("linear", "dB"):
+        raise ValueError(f"scale must be 'linear' or 'dB', got {scale!r}")
+
+    n_samples = signal.size
+
+    if window is None:
+        window_values = None
+    elif isinstance(window, np.ndarray):
+        if window.ndim != 1 or window.size != n_samples:
+            raise ValueError(f"window must have length {n_samples}, got {window.shape}")
+        window_values = window
+    else:
+        window_values = get_window(window, n_samples, fftbins=True)
+
+    signal_for_fft = signal if window_values is None else signal * window_values
+    spectrum = np.fft.fftshift(np.fft.fft(signal_for_fft))
+
+    if sample_rate is None:
+        freqs = np.fft.fftshift(np.fft.fftfreq(n_samples)) * n_samples
+        xlabel = "Frequency [bins]"
+    else:
+        freqs = np.fft.fftshift(np.fft.fftfreq(n_samples, d=1.0 / sample_rate))
+        xlabel = "Frequency [Hz]"
+
+    magnitude = np.abs(spectrum)
+    if scale == "dB":
+        magnitude = 20 * np.log10(np.maximum(magnitude, 1e-12))
+        ylabel = "Magnitude [dB]"
+    else:
+        ylabel = "Magnitude"
+
+    if ax is None:
+        fig, ax = plt.subplots(tight_layout=True)
+    else:
+        fig = ax.get_figure()
+
+    ax.plot(freqs, magnitude, label=label)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.grid(True)
+    if label:
+        ax.legend()
+
+    return fig, ax
