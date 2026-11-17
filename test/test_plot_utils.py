@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 from scipy.signal import get_window
 
-from radarsig.plot_utils import plot_magnitude_spectrum
+from radarsig.plot_utils import plot_magnitude_spectrum, plot_magnitude_spectrum_ratio
 
 plt.switch_backend("Agg")
 
@@ -124,6 +124,75 @@ def test_plot_magnitude_spectrum_reuses_axes():
     assert returned_fig is fig
     assert returned_ax is ax
     assert len(ax.lines) == 1
+
+
+# test_plot_magnitude_spectrum_ratio_scaling() {{{1
+def test_plot_magnitude_spectrum_ratio_scaling():
+    rng = np.random.default_rng(0)
+    reference = rng.normal(size=32) + 1j * rng.normal(size=32)
+    test = 2.0 * reference
+
+    _, ax = plot_magnitude_spectrum_ratio(reference, test)
+
+    _, ratio_db = ax.lines[0].get_xydata().T
+    np.testing.assert_allclose(ratio_db, 20 * np.log10(2.0))
+    assert ax.get_ylabel() == "Magnitude ratio [dB]"
+
+
+# test_plot_magnitude_spectrum_ratio_identity() {{{1
+def test_plot_magnitude_spectrum_ratio_identity():
+    rng = np.random.default_rng(1)
+    reference = rng.normal(size=32) + 1j * rng.normal(size=32)
+
+    _, ax = plot_magnitude_spectrum_ratio(reference, reference)
+
+    _, ratio_db = ax.lines[0].get_xydata().T
+    np.testing.assert_allclose(ratio_db, 0.0, atol=1e-12)
+
+
+# test_plot_magnitude_spectrum_ratio_window_and_pad_to() {{{1
+def test_plot_magnitude_spectrum_ratio_window_and_pad_to():
+    rng = np.random.default_rng(2)
+    reference = rng.normal(size=20) + 1j * rng.normal(size=20)
+    test = rng.normal(size=20) + 1j * rng.normal(size=20)
+    pad_to = 64
+    window_values = get_window("hann", reference.size, fftbins=True)
+
+    _, ax = plot_magnitude_spectrum_ratio(
+        reference, test, window="hann", pad_to=pad_to
+    )
+
+    _, ratio_db = ax.lines[0].get_xydata().T
+    reference_mag = np.abs(
+        np.fft.fftshift(np.fft.fft(reference * window_values, n=pad_to))
+    )
+    test_mag = np.abs(
+        np.fft.fftshift(np.fft.fft(test * window_values, n=pad_to))
+    )
+    np.testing.assert_allclose(ratio_db, 20 * np.log10(test_mag / reference_mag))
+
+
+# test_plot_magnitude_spectrum_ratio_sample_rate() {{{1
+def test_plot_magnitude_spectrum_ratio_sample_rate():
+    reference = np.random.default_rng(3).normal(size=16)
+
+    _, ax = plot_magnitude_spectrum_ratio(reference, reference, sample_rate=100.0)
+
+    assert ax.get_xlabel() == "Frequency [Hz]"
+
+
+# test_plot_magnitude_spectrum_ratio_shape_mismatch() {{{1
+def test_plot_magnitude_spectrum_ratio_shape_mismatch():
+    with pytest.raises(ValueError, match="same shape"):
+        plot_magnitude_spectrum_ratio(np.ones(4), np.ones(5))
+
+
+# test_plot_magnitude_spectrum_ratio_all_zero_bins() {{{1
+def test_plot_magnitude_spectrum_ratio_all_zero_bins():
+    _, ax = plot_magnitude_spectrum_ratio(np.zeros(8), np.zeros(8))
+
+    _, ratio_db = ax.lines[0].get_xydata().T
+    assert np.isnan(ratio_db).all()
 
 
 # test_plot_magnitude_spectrum_invalid_input() {{{1

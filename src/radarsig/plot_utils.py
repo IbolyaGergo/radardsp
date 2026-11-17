@@ -76,6 +76,44 @@ def plot_filter_response(
     return axes[0].get_figure(), axes
 
 
+# _magnitude_spectrum() {{{1
+def _magnitude_spectrum(
+    signal: np.ndarray,
+    *,
+    sample_rate: float | None,
+    window: str | tuple | np.ndarray | None,
+    pad_to: int | None,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return (frequencies, linear magnitude) for the spectrum plot helpers."""
+    signal = np.asarray(signal)
+    if signal.ndim != 1:
+        raise ValueError(f"signal must be 1D, got shape {signal.shape}")
+
+    n_samples = signal.size
+    if pad_to is not None and pad_to < n_samples:
+        raise ValueError(f"pad_to must be >= signal length {n_samples}, got {pad_to}")
+    n_fft = n_samples if pad_to is None else pad_to
+
+    if window is None:
+        window_values = None
+    elif isinstance(window, np.ndarray):
+        if window.ndim != 1 or window.size != n_samples:
+            raise ValueError(f"window must have length {n_samples}, got {window.shape}")
+        window_values = window
+    else:
+        window_values = get_window(window, n_samples, fftbins=True)
+
+    signal_for_fft = signal if window_values is None else signal * window_values
+    spectrum = np.fft.fftshift(np.fft.fft(signal_for_fft, n=n_fft))
+
+    if sample_rate is None:
+        freqs = np.fft.fftshift(np.fft.fftfreq(n_fft)) * n_fft
+    else:
+        freqs = np.fft.fftshift(np.fft.fftfreq(n_fft, d=1.0 / sample_rate))
+
+    return freqs, np.abs(spectrum)
+
+
 # plot_magnitude_spectrum() {{{1
 def plot_magnitude_spectrum(
     signal: np.ndarray,
@@ -113,37 +151,14 @@ def plot_magnitude_spectrum(
     Returns:
         The figure and axes containing the plot.
     """
-    signal = np.asarray(signal)
-    if signal.ndim != 1:
-        raise ValueError(f"signal must be 1D, got shape {signal.shape}")
     if scale not in ("linear", "dB"):
         raise ValueError(f"scale must be 'linear' or 'dB', got {scale!r}")
 
-    n_samples = signal.size
-    if pad_to is not None and pad_to < n_samples:
-        raise ValueError(f"pad_to must be >= signal length {n_samples}, got {pad_to}")
-    n_fft = n_samples if pad_to is None else pad_to
+    freqs, magnitude = _magnitude_spectrum(
+        signal, sample_rate=sample_rate, window=window, pad_to=pad_to
+    )
 
-    if window is None:
-        window_values = None
-    elif isinstance(window, np.ndarray):
-        if window.ndim != 1 or window.size != n_samples:
-            raise ValueError(f"window must have length {n_samples}, got {window.shape}")
-        window_values = window
-    else:
-        window_values = get_window(window, n_samples, fftbins=True)
-
-    signal_for_fft = signal if window_values is None else signal * window_values
-    spectrum = np.fft.fftshift(np.fft.fft(signal_for_fft, n=n_fft))
-
-    if sample_rate is None:
-        freqs = np.fft.fftshift(np.fft.fftfreq(n_fft)) * n_fft
-        xlabel = "Frequency [bins]"
-    else:
-        freqs = np.fft.fftshift(np.fft.fftfreq(n_fft, d=1.0 / sample_rate))
-        xlabel = "Frequency [Hz]"
-
-    magnitude = np.abs(spectrum)
+    xlabel = "Frequency [bins]" if sample_rate is None else "Frequency [Hz]"
     if scale == "dB":
         magnitude = 20 * np.log10(np.maximum(magnitude, 1e-12))
         ylabel = "Magnitude [dB]"
@@ -158,6 +173,73 @@ def plot_magnitude_spectrum(
     ax.plot(freqs, magnitude, label=label)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
+    ax.grid(True)
+    if label:
+        ax.legend()
+
+    return fig, ax
+
+
+# plot_magnitude_spectrum_ratio() {{{1
+def plot_magnitude_spectrum_ratio(
+    reference: np.ndarray,
+    test: np.ndarray,
+    *,
+    sample_rate: float | None = None,
+    window: str | tuple | np.ndarray | None = None,
+    pad_to: int | None = None,
+    ax: plt.Axes | None = None,
+    label: str | None = None,
+) -> tuple[plt.Figure, plt.Axes]:
+    """
+    Plot the magnitude ratio 20*log10(|FFT(test)| / |FFT(reference)|).
+
+    Both signals use the same window, pad_to, and frequency axis. Bins where
+    both magnitudes are below 1e-12 are left as NaN gaps, since their ratio is
+    undefined (plotting them as 0 dB would falsely suggest unity gain).
+
+    Args:
+        reference: 1D signal used as the denominator.
+        test: 1D signal used as the numerator; must match reference's shape.
+        sample_rate: Sampling rate in Hz. If None, the x-axis is in FFT bins.
+        window: Window applied before the FFT (see plot_magnitude_spectrum).
+        pad_to: FFT length; must be at least the signal length.
+        ax: Axes to draw on. If None, a new figure and axes are created.
+        label: Optional line label, shown in a legend when provided.
+
+    Returns:
+        The figure and axes containing the plot.
+    """
+    reference = np.asarray(reference)
+    test = np.asarray(test)
+    if reference.shape != test.shape:
+        raise ValueError(
+            f"reference and test must have the same shape, got {reference.shape} and {test.shape}"
+        )
+
+    eps = 1e-12
+    freqs, reference_magnitude = _magnitude_spectrum(
+        reference, sample_rate=sample_rate, window=window, pad_to=pad_to
+    )
+    _, test_magnitude = _magnitude_spectrum(
+        test, sample_rate=sample_rate, window=window, pad_to=pad_to
+    )
+
+    with np.errstate(divide="ignore", invalid="ignore"):
+        ratio_db = 20 * np.log10(
+            np.maximum(test_magnitude, eps) / np.maximum(reference_magnitude, eps)
+        )
+    ratio_db[(reference_magnitude < eps) & (test_magnitude < eps)] = np.nan
+
+    if ax is None:
+        fig, ax = plt.subplots(tight_layout=True)
+    else:
+        fig = ax.get_figure()
+
+    xlabel = "Frequency [bins]" if sample_rate is None else "Frequency [Hz]"
+    ax.plot(freqs, ratio_db, label=label)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel("Magnitude ratio [dB]")
     ax.grid(True)
     if label:
         ax.legend()
