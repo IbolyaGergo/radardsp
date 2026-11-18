@@ -204,6 +204,25 @@ def test_plot_magnitude_spectrum_ratio_unequal_lengths_with_pad_to():
     np.testing.assert_allclose(ratio_db, expected_db)
 
 
+# test_plot_magnitude_spectrum_ratio_linear_scale() {{{1
+def test_plot_magnitude_spectrum_ratio_linear_scale():
+    rng = np.random.default_rng(5)
+    reference = rng.normal(size=32) + 1j * rng.normal(size=32)
+    test = 2.0 * reference
+
+    _, ax = plot_magnitude_spectrum_ratio(reference, test, scale="linear")
+
+    _, ratio = ax.lines[0].get_xydata().T
+    np.testing.assert_allclose(ratio, 2.0)
+    assert ax.get_ylabel() == "Magnitude ratio"
+
+
+# test_plot_magnitude_spectrum_ratio_invalid_scale() {{{1
+def test_plot_magnitude_spectrum_ratio_invalid_scale():
+    with pytest.raises(ValueError, match="scale must be"):
+        plot_magnitude_spectrum_ratio(np.ones(8), np.ones(8), scale="wat")
+
+
 # test_plot_magnitude_spectrum_ratio_all_zero_bins() {{{1
 def test_plot_magnitude_spectrum_ratio_all_zero_bins():
     _, ax = plot_magnitude_spectrum_ratio(np.zeros(8), np.zeros(8))

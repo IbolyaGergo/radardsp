@@ -186,13 +186,14 @@ def plot_magnitude_spectrum_ratio(
     test: np.ndarray,
     *,
     sample_rate: float | None = None,
+    scale: Literal["dB", "linear"] = "linear",
     window: str | tuple | np.ndarray | None = None,
     pad_to: int | None = None,
     ax: plt.Axes | None = None,
     label: str | None = None,
 ) -> tuple[plt.Figure, plt.Axes]:
     """
-    Plot the magnitude ratio 20*log10(|FFT(test)| / |FFT(reference)|).
+    Plot the magnitude ratio |FFT(test)| / |FFT(reference)|, in dB by default.
 
     Both signals use the same window, pad_to, and frequency axis. Bins where
     both magnitudes are below 1e-12 are left as NaN gaps, since their ratio is
@@ -204,6 +205,7 @@ def plot_magnitude_spectrum_ratio(
               reference only when pad_to is given, in which case both are
               zero-padded to that common FFT length.
         sample_rate: Sampling rate in Hz. If None, the x-axis is in FFT bins.
+        scale: "dB" for 20*log10(ratio), "linear" for the raw ratio |Y|/|X|.
         window: Window applied before the FFT (see plot_magnitude_spectrum).
         pad_to: FFT length; must be at least both signal lengths.
         ax: Axes to draw on. If None, a new figure and axes are created.
@@ -214,6 +216,8 @@ def plot_magnitude_spectrum_ratio(
     """
     reference = np.asarray(reference)
     test = np.asarray(test)
+    if scale not in ("dB", "linear"):
+        raise ValueError(f"scale must be 'dB' or 'linear', got {scale!r}")
     if reference.shape != test.shape and pad_to is None:
         raise ValueError(
             "reference and test must have the same shape unless pad_to is set, "
@@ -221,8 +225,7 @@ def plot_magnitude_spectrum_ratio(
         )
     if pad_to is not None and pad_to < max(reference.size, test.size):
         raise ValueError(
-            f"pad_to must be >= both signal lengths ({reference.size}, {test.size}), "
-            f"got {pad_to}"
+            f"pad_to must be >= both signal lengths ({reference.size}, {test.size}), got {pad_to}"
         )
 
     eps = 1e-12
@@ -234,10 +237,13 @@ def plot_magnitude_spectrum_ratio(
     )
 
     with np.errstate(divide="ignore", invalid="ignore"):
-        ratio_db = 20 * np.log10(
-            np.maximum(test_magnitude, eps) / np.maximum(reference_magnitude, eps)
-        )
-    ratio_db[(reference_magnitude < eps) & (test_magnitude < eps)] = np.nan
+        ratio = np.maximum(test_magnitude, eps) / np.maximum(reference_magnitude, eps)
+    if scale == "dB":
+        ratio = 20 * np.log10(ratio)
+        ylabel = "Magnitude ratio [dB]"
+    else:
+        ylabel = "Magnitude ratio"
+    ratio[(reference_magnitude < eps) & (test_magnitude < eps)] = np.nan
 
     if ax is None:
         fig, ax = plt.subplots(tight_layout=True)
@@ -245,9 +251,9 @@ def plot_magnitude_spectrum_ratio(
         fig = ax.get_figure()
 
     xlabel = "Frequency [bins]" if sample_rate is None else "Frequency [Hz]"
-    ax.plot(freqs, ratio_db, label=label)
+    ax.plot(freqs, ratio, label=label)
     ax.set_xlabel(xlabel)
-    ax.set_ylabel("Magnitude ratio [dB]")
+    ax.set_ylabel(ylabel)
     ax.grid(True)
     if label:
         ax.legend()
