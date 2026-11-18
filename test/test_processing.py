@@ -1,5 +1,7 @@
-import pytest
 import numpy as np
+import pytest
+from scipy.signal import get_window
+
 from radarsig.processing import (
     compute_pulse_phase_difference,
     compute_pulse_pair_mean,
@@ -8,6 +10,7 @@ from radarsig.processing import (
     compute_pulse_pair_width,
     compute_pulse_pair_snr,
     compute_pulse_pair_snr_db,
+    compute_spectrum,
 )
 from radarsig.signal_generator import generate_gaussian_doppler_signal
 
@@ -170,3 +173,65 @@ def test_compute_pulse_pair_nd():
     est_snr_db = compute_pulse_pair_snr_db(iq_2d)
     assert est_snr_db.shape == (n_range,)
     np.testing.assert_allclose(est_snr_db, true_snr_db, atol=2.5)
+
+
+# test_compute_spectrum() {{{1
+def test_compute_spectrum():
+    x = np.array([1.0, 2.0, 3.0, 4.0])
+
+    freqs, spectrum = compute_spectrum(x)
+
+    np.testing.assert_allclose(freqs, np.fft.fftshift(np.fft.fftfreq(x.size)))
+    np.testing.assert_allclose(spectrum, np.fft.fftshift(np.fft.fft(x)))
+
+
+# test_compute_spectrum_window() {{{1
+def test_compute_spectrum_window():
+    x = np.ones(8)
+    window_values = get_window("hann", x.size, fftbins=True)
+
+    _, spectrum = compute_spectrum(x, window="hann")
+
+    np.testing.assert_allclose(
+        spectrum, np.fft.fftshift(np.fft.fft(x * window_values)), atol=1e-12
+    )
+
+
+# test_compute_spectrum_sample_rate() {{{1
+def test_compute_spectrum_sample_rate():
+    x = np.ones(8)
+
+    freqs, _ = compute_spectrum(x, sample_rate=100.0)
+
+    expected = np.fft.fftshift(np.fft.fftfreq(x.size, d=1.0 / 100.0))
+    np.testing.assert_allclose(freqs, expected)
+
+
+# test_compute_spectrum_n() {{{1
+def test_compute_spectrum_n():
+    x = np.arange(4.0)
+
+    freqs, spectrum = compute_spectrum(x, n=8)
+
+    assert freqs.size == 8
+    np.testing.assert_allclose(spectrum, np.fft.fftshift(np.fft.fft(x, n=8)))
+
+    _, truncated = compute_spectrum(x, n=2)
+    np.testing.assert_allclose(truncated, np.fft.fftshift(np.fft.fft(x, n=2)))
+
+
+# test_compute_spectrum_nd() {{{1
+def test_compute_spectrum_nd():
+    x = np.arange(12.0).reshape(2, 6)
+
+    freqs, spectrum = compute_spectrum(x)
+
+    expected = np.fft.fftshift(np.fft.fft(x, axis=-1), axes=-1)
+    np.testing.assert_allclose(spectrum, expected)
+    assert freqs.shape == (6,)
+
+
+# test_compute_spectrum_window_length_mismatch() {{{1
+def test_compute_spectrum_window_length_mismatch():
+    with pytest.raises(ValueError, match="window must have length 8"):
+        compute_spectrum(np.ones(8), window=np.ones(7))

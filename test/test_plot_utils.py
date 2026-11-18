@@ -61,7 +61,7 @@ def test_plot_magnitude_spectrum_linear_magnitude():
 
     _, magnitude = ax.lines[0].get_xydata().T
     expected = np.abs(np.fft.fftshift(np.fft.fft(signal)))
-    np.testing.assert_allclose(magnitude, expected)
+    np.testing.assert_allclose(magnitude, expected, atol=1e-12)
 
 
 # test_plot_magnitude_spectrum_db_scale() {{{1
@@ -106,7 +106,7 @@ def test_plot_magnitude_spectrum_window():
     _, magnitude = ax.lines[0].get_xydata().T
     window_values = get_window("hann", n_samples, fftbins=True)
     expected = np.abs(np.fft.fftshift(np.fft.fft(signal * window_values)))
-    np.testing.assert_allclose(magnitude, expected)
+    np.testing.assert_allclose(magnitude, expected, atol=1e-12)
 
 
 # test_plot_magnitude_spectrum_window_array_length_mismatch() {{{1

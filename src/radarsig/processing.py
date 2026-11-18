@@ -1,7 +1,6 @@
 import numpy as np
-from scipy.signal import lfilter
 from scipy.fft import fft, fftfreq, fftshift
-from typing import Dict, Any, Optional
+from scipy.signal import get_window, lfilter
 
 
 # _apply_filter() {{{1
@@ -148,31 +147,60 @@ def compute_pulse_pair_snr_db(iq: np.ndarray) -> float | np.ndarray:
     return 10.0 * np.log10(np.maximum(snr, 1e-9))
 
 
-# compute_fft() {{{1
-def compute_fft(
+# _resolve_window() {{{1
+def _resolve_window(
+    window: str | tuple | np.ndarray | None, n_samples: int
+) -> np.ndarray | None:
+    """Resolve a window specification to an array, or None for rectangular."""
+    if window is None:
+        return None
+    if isinstance(window, np.ndarray):
+        if window.ndim != 1 or window.size != n_samples:
+            raise ValueError(f"window must have length {n_samples}, got {window.shape}")
+        return window
+    return get_window(window, n_samples, fftbins=True)
+
+
+# compute_spectrum() {{{1
+def compute_spectrum(
     x: np.ndarray,
-    fft_len: Optional[int] = None,
+    *,
+    n: int | None = None,
+    window: str | tuple | np.ndarray | None = None,
+    sample_rate: float | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
-    Compute the shifted FFT spectrum of a complex signal
-    (1D or 2D) using a Hamming window.
+    Compute the shifted FFT spectrum of a signal.
 
     Parameters:
-        x (np.ndarray): Complex input signal of shape (n_samples,) or (n_bins, n_samples).
-        fft_len (int, optional): FFT length. Defaults to x.shape[-1].
+        x: Complex or real signal of shape (..., n_samples).
+        n: Length of the transformed axis, following numpy/scipy FFT semantics:
+           shorter than the signal truncates, longer zero-pads. Defaults to the
+           signal length.
+        window: Window applied before the FFT. None means rectangular. Accepts
+                any window name/tuple understood by scipy.signal.get_window, or
+                a 1D array matching the signal length.
+        sample_rate: Sampling rate in Hz. If None, frequencies are normalized
+                     (cycles/sample); otherwise they are in Hz.
 
     Returns:
         tuple[np.ndarray, np.ndarray]:
-            - freqs: Shifted frequency array of shape (fft_len,)
-            - spectrum: Shifted FFT spectrum
+            - freqs: Shifted frequency array of shape (n,)
+            - spectrum: Shifted complex FFT spectrum
     """
-    if fft_len is None:
-        fft_len = x.shape[-1]
+    x = np.asarray(x)
+    n_samples = x.shape[-1]
+    if n is None:
+        n = n_samples
 
-    window = np.hamming(x.shape[-1])
-    x_win = x * window
+    window_values = _resolve_window(window, n_samples)
+    if window_values is not None:
+        x = x * window_values
 
-    x_fft = fftshift(fft(x_win, n=fft_len, axis=-1), axes=-1)
-    freqs = fftshift(fftfreq(fft_len))
+    spectrum = fftshift(fft(x, n=n, axis=-1), axes=-1)
+    if sample_rate is None:
+        freqs = fftshift(fftfreq(n))
+    else:
+        freqs = fftshift(fftfreq(n, d=1.0 / sample_rate))
 
-    return freqs, x_fft
+    return freqs, spectrum

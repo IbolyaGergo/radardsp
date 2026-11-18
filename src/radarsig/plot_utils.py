@@ -1,8 +1,10 @@
-import numpy as np
+from typing import Any, Callable, Literal
 
+import numpy as np
 from matplotlib import pyplot as plt
-from scipy.signal import freqz, get_window
-from typing import Callable, Any, Literal
+from scipy.signal import freqz
+
+from radarsig.processing import compute_spectrum
 
 
 # make_iq_plotter() {{{1
@@ -89,27 +91,15 @@ def _magnitude_spectrum(
     if signal.ndim != 1:
         raise ValueError(f"signal must be 1D, got shape {signal.shape}")
 
-    n_samples = signal.size
-    if pad_to is not None and pad_to < n_samples:
-        raise ValueError(f"pad_to must be >= signal length {n_samples}, got {pad_to}")
-    n_fft = n_samples if pad_to is None else pad_to
+    if pad_to is not None and pad_to < signal.size:
+        raise ValueError(f"pad_to must be >= signal length {signal.size}, got {pad_to}")
+    n_fft = signal.size if pad_to is None else pad_to
 
-    if window is None:
-        window_values = None
-    elif isinstance(window, np.ndarray):
-        if window.ndim != 1 or window.size != n_samples:
-            raise ValueError(f"window must have length {n_samples}, got {window.shape}")
-        window_values = window
-    else:
-        window_values = get_window(window, n_samples, fftbins=True)
-
-    signal_for_fft = signal if window_values is None else signal * window_values
-    spectrum = np.fft.fftshift(np.fft.fft(signal_for_fft, n=n_fft))
-
+    freqs, spectrum = compute_spectrum(
+        signal, n=pad_to, window=window, sample_rate=sample_rate
+    )
     if sample_rate is None:
-        freqs = np.fft.fftshift(np.fft.fftfreq(n_fft)) * n_fft
-    else:
-        freqs = np.fft.fftshift(np.fft.fftfreq(n_fft, d=1.0 / sample_rate))
+        freqs = freqs * n_fft
 
     return freqs, np.abs(spectrum)
 
@@ -186,7 +176,7 @@ def plot_magnitude_spectrum_ratio(
     test: np.ndarray,
     *,
     sample_rate: float | None = None,
-    scale: Literal["dB", "linear"] = "linear",
+    scale: Literal["dB", "linear"] = "dB",
     window: str | tuple | np.ndarray | None = None,
     pad_to: int | None = None,
     ax: plt.Axes | None = None,
