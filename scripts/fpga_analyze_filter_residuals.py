@@ -2,6 +2,7 @@
 import argparse
 import sys
 from pathlib import Path
+
 from radarsig.fpga_analysis import analyze_iq_filter_residual
 
 

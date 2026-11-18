@@ -1,14 +1,16 @@
 #! /usr/bin/env python3
 import argparse
 from pathlib import Path
-import numpy as np
+
 import matplotlib.pyplot as plt
-from radarsig.signal_generator import generate_gaussian_doppler_signal
+import numpy as np
+
 from radarsig.processing import (
     compute_pulse_pair_mean,
-    compute_pulse_pair_width,
     compute_pulse_pair_snr_db,
+    compute_pulse_pair_width,
 )
+from radarsig.signal_generator import generate_gaussian_doppler_signal
 
 # ==========================================
 # CONFIGURATION CONSTANTS

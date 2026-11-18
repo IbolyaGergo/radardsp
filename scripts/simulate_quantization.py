@@ -6,8 +6,10 @@ and analyze the impact on frequency response.
 
 import argparse
 from pathlib import Path
+
 import numpy as np
 from scipy.signal import freqz
+
 from radarsig.plot_utils import plot_filter_response
 
 # Hardcoded coefficients from gcinit.sh

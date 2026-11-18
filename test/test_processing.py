@@ -3,13 +3,13 @@ import pytest
 from scipy.signal import get_window
 
 from radarsig.processing import (
-    compute_pulse_phase_difference,
     compute_pulse_pair_mean,
-    compute_signal_quality_index,
-    compute_pulse_pair_variance,
-    compute_pulse_pair_width,
     compute_pulse_pair_snr,
     compute_pulse_pair_snr_db,
+    compute_pulse_pair_variance,
+    compute_pulse_pair_width,
+    compute_pulse_phase_difference,
+    compute_signal_quality_index,
     compute_spectrum,
 )
 from radarsig.signal_generator import generate_gaussian_doppler_signal

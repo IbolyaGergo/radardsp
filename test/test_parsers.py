@@ -1,6 +1,6 @@
-import pytest
 import numpy as np
-from radarsig.parsers import parse_hex_line, hex_lines_to_dict
+
+from radarsig.parsers import hex_lines_to_dict, parse_hex_line
 
 
 def test_parse_hex_line():

@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.fft import fft, fftfreq, fftshift
+
 from radarsig.signal_generator import (
     generate_gaussian_doppler_signal,
 )

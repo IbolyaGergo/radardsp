@@ -2,14 +2,16 @@
 import argparse
 import csv
 from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
+
+from radarsig.filters import compute_noise_power_gain_db
 from radarsig.fpga_io import (
-    load_fpga_ram_binary_to_iq,
     find_iq_pair_by_id,
     load_filter_coeffs_from_binary,
+    load_fpga_ram_binary_to_iq,
 )
-from radarsig.filters import compute_noise_power_gain_db
 
 # NOTE: pairs 005-008 are omitted, because no filter was applied
 RANGES = {

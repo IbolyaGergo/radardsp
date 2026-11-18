@@ -1,9 +1,11 @@
 import logging
 import math
-import numpy as np
-from radarsig import parsers
 from pathlib import Path
 from typing import NamedTuple
+
+import numpy as np
+
+from radarsig import parsers
 
 
 class PulseSet(NamedTuple):

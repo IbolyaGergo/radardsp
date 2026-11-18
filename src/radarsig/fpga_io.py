@@ -1,8 +1,8 @@
 """Functions to load data/raw/fpga/iq/*.data to complex np.ndarray."""
 
-import numpy as np
-
 from pathlib import Path
+
+import numpy as np
 
 
 # load_binary_to_array() {{{1

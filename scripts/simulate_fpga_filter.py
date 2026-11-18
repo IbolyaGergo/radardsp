@@ -4,12 +4,14 @@ and computing compute_median_ratio_spectrum to observe transient convergence.
 """
 
 import argparse
-import numpy as np
-import matplotlib.pyplot as plt
 from pathlib import Path
-from scipy.signal import lfilter, freqz
+
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.signal import freqz, lfilter
+
+from radarsig.fpga_analysis import compute_median_ratio_spectrum
 from radarsig.fpga_io import load_filter_coeffs_from_binary
-from radarsig.fpga_analysis import compute_median_ratio_spectrum, compute_csd_spectrum
 
 
 def main():

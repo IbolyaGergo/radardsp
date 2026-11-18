@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.fft import fft, ifft, fftfreq
+from scipy.fft import fftfreq, ifft
 
 
 # generate_gaussian_doppler_signal() {{{1

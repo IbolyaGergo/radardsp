@@ -1,21 +1,22 @@
 #!/usr/bin/env python3
 import argparse
 from dataclasses import dataclass
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
-from pathlib import Path
-from scipy.fft import fft, fftshift
-from scipy.signal import get_window, freqz
-from radarsig.fpga_io import (
-    load_fpga_ram_binary_to_iq,
-    load_filter_coeffs_from_binary,
-    find_iq_pairs,
-)
+from scipy.fft import fftshift
+from scipy.signal import freqz, get_window
+
 from radarsig.fpga_analysis import (
-    compute_median_ratio_spectrum,
-    compute_csd_spectrum,
     compute_coherence,
+    compute_csd_spectrum,
+    compute_median_ratio_spectrum,
     filter_valid_bins,
+)
+from radarsig.fpga_io import (
+    load_filter_coeffs_from_binary,
+    load_fpga_ram_binary_to_iq,
 )
 
 

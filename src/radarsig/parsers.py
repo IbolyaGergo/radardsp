@@ -1,5 +1,6 @@
+from collections.abc import Iterable
+
 import numpy as np
-from typing import Iterable
 
 
 def _to_int16(hi: str, lo: str) -> int:

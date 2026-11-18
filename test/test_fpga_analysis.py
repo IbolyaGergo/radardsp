@@ -1,10 +1,11 @@
 import numpy as np
-from scipy.signal import lfilter, freqz
+from scipy.signal import freqz, lfilter
+
 from radarsig.fpga_analysis import (
+    compute_coherence,
+    compute_csd_spectrum,
     compute_filter_residual,
     compute_median_ratio_spectrum,
-    compute_csd_spectrum,
-    compute_coherence,
 )
 
 

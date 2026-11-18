@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 import sys
+
 import numpy as np
+
 from radarsig.io import load_pulse_from_txt
-from radarsig.parsers import hex_lines_to_dict
 
 
 def main(input_file, output_file):

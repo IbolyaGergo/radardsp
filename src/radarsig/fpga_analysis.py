@@ -1,15 +1,15 @@
 """Functions to analyze FPGA IQ channel data against filter coefficients."""
 
+from pathlib import Path
+
 import numpy as np
 from numpy.lib.stride_tricks import sliding_window_view
-from pathlib import Path
 from scipy.fft import fft
 
 from radarsig.fpga_io import (
-    load_fpga_ram_binary_to_iq,
     load_filter_coeffs_from_binary,
+    load_fpga_ram_binary_to_iq,
 )
-from scipy.signal import freqz
 
 
 # compute_filter_residual() {{{1

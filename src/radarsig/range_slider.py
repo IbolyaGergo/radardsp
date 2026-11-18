@@ -1,16 +1,17 @@
+from collections.abc import Callable
+
 import matplotlib.pyplot as plt
-from matplotlib.widgets import Slider
 import numpy as np
-from typing import Callable, Optional
+from matplotlib.widgets import Slider
 
 
 class RangeSlider:
     def __init__(
         self,
         data: np.ndarray,
-        plot_callback: Callable[[plt.Axes, np.ndarray, Optional[np.ndarray]], None],
+        plot_callback: Callable[[plt.Axes, np.ndarray, np.ndarray | None], None],
         axis: int = 0,
-        x: Optional[np.ndarray] = None,
+        x: np.ndarray | None = None,
         window_size: int = 20,
     ):
         self.data = data

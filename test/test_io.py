@@ -1,12 +1,13 @@
-import pytest
-import numpy as np
 import shutil
 from pathlib import Path
+
+import numpy as np
+
 from radarsig.io import (
-    load_pulse_from_txt,
-    load_pulseset_from_txt,
     _get_pulse_idx,
+    load_pulse_from_txt,
     load_pulseset_from_npz,
+    load_pulseset_from_txt,
 )
 
 MOCK_PULSE_PATH = Path("test/data_mock/sample_pulse.txt")
