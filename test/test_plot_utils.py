@@ -134,10 +134,10 @@ def test_plot_magnitude_spectrum_ratio_scaling():
 
     _, ax = plot_magnitude_spectrum_ratio(reference, test)
 
-    _, ratio_db = ax.lines[0].get_xydata().T
-    np.testing.assert_allclose(ratio_db, 20 * np.log10(2.0))
+    _, ratio = ax.lines[0].get_xydata().T
+    np.testing.assert_allclose(ratio, 2.0)
     assert ax.get_xlabel() == "Normalized frequency [cycles/sample]"
-    assert ax.get_ylabel() == "Magnitude ratio [dB]"
+    assert ax.get_ylabel() == "Magnitude ratio"
 
 
 # test_plot_magnitude_spectrum_ratio_identity() {{{1
@@ -147,8 +147,8 @@ def test_plot_magnitude_spectrum_ratio_identity():
 
     _, ax = plot_magnitude_spectrum_ratio(reference, reference)
 
-    _, ratio_db = ax.lines[0].get_xydata().T
-    np.testing.assert_allclose(ratio_db, 0.0, atol=1e-12)
+    _, ratio = ax.lines[0].get_xydata().T
+    np.testing.assert_allclose(ratio, 1.0)
 
 
 # test_plot_magnitude_spectrum_ratio_window_and_pad_to() {{{1
@@ -160,7 +160,7 @@ def test_plot_magnitude_spectrum_ratio_window_and_pad_to():
     window_values = get_window("hann", reference.size, fftbins=True)
 
     _, ax = plot_magnitude_spectrum_ratio(
-        reference, test, window="hann", pad_to=pad_to
+        reference, test, scale="dB", window="hann", pad_to=pad_to
     )
 
     _, ratio_db = ax.lines[0].get_xydata().T
@@ -198,7 +198,7 @@ def test_plot_magnitude_spectrum_ratio_unequal_lengths_with_pad_to():
     y = np.convolve(x, h, mode="full")
     pad_to = y.size
 
-    _, ax = plot_magnitude_spectrum_ratio(x, y, pad_to=pad_to)
+    _, ax = plot_magnitude_spectrum_ratio(x, y, scale="dB", pad_to=pad_to)
 
     _, ratio_db = ax.lines[0].get_xydata().T
     expected_db = 20 * np.log10(np.abs(np.fft.fftshift(np.fft.fft(h, n=pad_to))))
@@ -228,8 +228,8 @@ def test_plot_magnitude_spectrum_ratio_invalid_scale():
 def test_plot_magnitude_spectrum_ratio_all_zero_bins():
     _, ax = plot_magnitude_spectrum_ratio(np.zeros(8), np.zeros(8))
 
-    _, ratio_db = ax.lines[0].get_xydata().T
-    assert np.isnan(ratio_db).all()
+    _, ratio = ax.lines[0].get_xydata().T
+    assert np.isnan(ratio).all()
 
 
 # test_plot_magnitude_spectrum_invalid_input() {{{1

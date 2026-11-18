@@ -1,4 +1,5 @@
-from typing import Any, Callable, Literal
+from collections.abc import Callable
+from typing import Any, Literal
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -173,18 +174,18 @@ def plot_magnitude_spectrum_ratio(
     test: np.ndarray,
     *,
     sample_rate: float | None = None,
-    scale: Literal["dB", "linear"] = "dB",
+    scale: Literal["dB", "linear"] = "linear",
     window: str | tuple | np.ndarray | None = None,
     pad_to: int | None = None,
     ax: plt.Axes | None = None,
     label: str | None = None,
 ) -> tuple[plt.Figure, plt.Axes]:
     """
-    Plot the magnitude ratio |FFT(test)| / |FFT(reference)|, in dB by default.
+    Plot the magnitude ratio |FFT(test)| / |FFT(reference)|.
 
     Both signals use the same window, pad_to, and frequency axis. Bins where
     both magnitudes are below 1e-12 are left as NaN gaps, since their ratio is
-    undefined (plotting them as 0 dB would falsely suggest unity gain).
+    undefined (plotting a finite value would falsely suggest a valid ratio).
 
     Args:
         reference: 1D signal used as the denominator.
@@ -193,7 +194,8 @@ def plot_magnitude_spectrum_ratio(
               zero-padded to that common FFT length.
         sample_rate: Sampling rate in Hz. If None, the x-axis is normalized
                      frequency in cycles/sample.
-        scale: "dB" for 20*log10(ratio), "linear" for the raw ratio |Y|/|X|.
+        scale: "linear" for the raw ratio |Y|/|X| (default), "dB" for
+               20*log10(ratio).
         window: Window applied before the FFT (see plot_magnitude_spectrum).
         pad_to: FFT length; must be at least both signal lengths.
         ax: Axes to draw on. If None, a new figure and axes are created.
