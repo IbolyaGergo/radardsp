@@ -93,13 +93,10 @@ def _magnitude_spectrum(
 
     if pad_to is not None and pad_to < signal.size:
         raise ValueError(f"pad_to must be >= signal length {signal.size}, got {pad_to}")
-    n_fft = signal.size if pad_to is None else pad_to
 
     freqs, spectrum = compute_spectrum(
         signal, n=pad_to, window=window, sample_rate=sample_rate
     )
-    if sample_rate is None:
-        freqs = freqs * n_fft
 
     return freqs, np.abs(spectrum)
 
@@ -124,9 +121,9 @@ def plot_magnitude_spectrum(
 
     Args:
         signal: 1D complex or real time-series.
-        sample_rate: Sampling rate in Hz. If None, the x-axis is in FFT bins
-                     spanning -N/2 to N/2, where N is the FFT length. If given,
-                     the x-axis is in Hz.
+        sample_rate: Sampling rate in Hz. If None, the x-axis is normalized
+                     frequency in cycles/sample, spanning -0.5 to 0.5. If
+                     given, the x-axis is in Hz.
         scale: "linear" for magnitude, "dB" for 20*log10(magnitude).
         window: Window applied before the FFT. None means rectangular. Accepts
                 any window name/tuple understood by scipy.signal.get_window, or
@@ -148,7 +145,7 @@ def plot_magnitude_spectrum(
         signal, sample_rate=sample_rate, window=window, pad_to=pad_to
     )
 
-    xlabel = "Frequency [bins]" if sample_rate is None else "Frequency [Hz]"
+    xlabel = "Normalized frequency [cycles/sample]" if sample_rate is None else "Frequency [Hz]"
     if scale == "dB":
         magnitude = 20 * np.log10(np.maximum(magnitude, 1e-12))
         ylabel = "Magnitude [dB]"
@@ -194,7 +191,8 @@ def plot_magnitude_spectrum_ratio(
         test: 1D signal used as the numerator. May differ in length from
               reference only when pad_to is given, in which case both are
               zero-padded to that common FFT length.
-        sample_rate: Sampling rate in Hz. If None, the x-axis is in FFT bins.
+        sample_rate: Sampling rate in Hz. If None, the x-axis is normalized
+                     frequency in cycles/sample.
         scale: "dB" for 20*log10(ratio), "linear" for the raw ratio |Y|/|X|.
         window: Window applied before the FFT (see plot_magnitude_spectrum).
         pad_to: FFT length; must be at least both signal lengths.
@@ -240,7 +238,7 @@ def plot_magnitude_spectrum_ratio(
     else:
         fig = ax.get_figure()
 
-    xlabel = "Frequency [bins]" if sample_rate is None else "Frequency [Hz]"
+    xlabel = "Normalized frequency [cycles/sample]" if sample_rate is None else "Frequency [Hz]"
     ax.plot(freqs, ratio, label=label)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)

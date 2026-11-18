@@ -30,10 +30,10 @@ def test_plot_magnitude_spectrum_peak_and_default_range():
     fig, ax = plot_magnitude_spectrum(signal)
 
     freqs, magnitude = ax.lines[0].get_xydata().T
-    assert freqs[0] == -n_samples / 2
-    assert freqs[-1] == n_samples / 2 - 1
-    assert freqs[np.argmax(magnitude)] == bin_index
-    assert ax.get_xlabel() == "Frequency [bins]"
+    assert freqs[0] == -0.5
+    assert freqs[-1] == 0.5 - 1 / n_samples
+    assert freqs[np.argmax(magnitude)] == bin_index / n_samples
+    assert ax.get_xlabel() == "Normalized frequency [cycles/sample]"
     assert ax.get_ylabel() == "Magnitude"
     assert fig is ax.get_figure()
 
@@ -86,8 +86,8 @@ def test_plot_magnitude_spectrum_pad_to():
     freqs, magnitude = ax.lines[0].get_xydata().T
     expected = np.abs(np.fft.fftshift(np.fft.fft(b, n=pad_to)))
     np.testing.assert_allclose(magnitude, expected)
-    assert freqs[0] == -pad_to / 2
-    assert freqs[-1] == pad_to / 2 - 1
+    assert freqs[0] == -0.5
+    assert freqs[-1] == 0.5 - 1 / pad_to
 
 
 # test_plot_magnitude_spectrum_pad_to_too_small() {{{1
@@ -136,6 +136,7 @@ def test_plot_magnitude_spectrum_ratio_scaling():
 
     _, ratio_db = ax.lines[0].get_xydata().T
     np.testing.assert_allclose(ratio_db, 20 * np.log10(2.0))
+    assert ax.get_xlabel() == "Normalized frequency [cycles/sample]"
     assert ax.get_ylabel() == "Magnitude ratio [dB]"
 
 
