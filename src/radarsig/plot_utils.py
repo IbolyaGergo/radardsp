@@ -78,8 +78,8 @@ def plot_filter_response(
     return axes[0].get_figure(), axes
 
 
-# _magnitude_spectrum() {{{1
-def _magnitude_spectrum(
+# _validated_magnitude_spectrum() {{{1
+def _validated_magnitude_spectrum(
     signal: np.ndarray,
     *,
     sample_rate: float | None,
@@ -141,7 +141,7 @@ def plot_magnitude_spectrum(
     if scale not in ("linear", "dB"):
         raise ValueError(f"scale must be 'linear' or 'dB', got {scale!r}")
 
-    freqs, magnitude = _magnitude_spectrum(
+    freqs, magnitude = _validated_magnitude_spectrum(
         signal, sample_rate=sample_rate, window=window, pad_to=pad_to
     )
 
@@ -217,10 +217,10 @@ def plot_magnitude_spectrum_ratio(
         )
 
     eps = 1e-12
-    freqs, reference_magnitude = _magnitude_spectrum(
+    freqs, reference_magnitude = _validated_magnitude_spectrum(
         reference, sample_rate=sample_rate, window=window, pad_to=pad_to
     )
-    _, test_magnitude = _magnitude_spectrum(
+    _, test_magnitude = _validated_magnitude_spectrum(
         test, sample_rate=sample_rate, window=window, pad_to=pad_to
     )
 
