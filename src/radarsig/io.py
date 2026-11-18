@@ -26,7 +26,7 @@ def _aggregate_pulse_data(list_of_dicts: list[dict[str, np.ndarray]]) -> dict[st
         return {}
 
     # Initialize buffers
-    buffers = {key: [] for key in list_of_dicts[0].keys()}
+    buffers = {key: [] for key in list_of_dicts[0]}
 
     # Fill buffers
     for pulse_dict in list_of_dicts:
@@ -39,7 +39,7 @@ def _aggregate_pulse_data(list_of_dicts: list[dict[str, np.ndarray]]) -> dict[st
 
 def _validate_pulse_shape(pulse: dict[str, np.ndarray], n_samples: int, path: Path):
     """Helper to validate pulse shape."""
-    for key, arr in pulse.items():
+    for arr in pulse.values():
         if np.atleast_2d(arr).shape[1] != n_samples:
             raise ValueError(f"Shape mismatch in {path}: expected {n_samples}, got {arr.shape[1]}")
 

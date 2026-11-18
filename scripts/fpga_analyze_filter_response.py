@@ -43,7 +43,7 @@ def plot_median_spectrum(ax, results_list, pair_id):
 
     colors = plt.cm.tab10(np.linspace(0, 1, len(results_list)))
     emp_lines = []
-    for res, color in zip(results_list, colors):
+    for res, color in zip(results_list, colors, strict=False):
         line = ax.plot(
             res.freqs, res.emp_data, label=f"Empirical ({res.window_name})", color=color, alpha=0.8
         )
@@ -54,7 +54,7 @@ def plot_median_spectrum(ax, results_list, pair_id):
 
     ax2 = ax.twinx()
     coherence_lines = []
-    for res, color in zip(results_list, colors):
+    for res, color in zip(results_list, colors, strict=False):
         if res.coherence is not None:
             line = ax2.plot(
                 res.freqs,
@@ -126,7 +126,7 @@ def process_pair(pair_id, i_path, q_path, n_bins, method, window_names, out_file
 
     # Separate theoretical filter response computation over whole unit circle [0, 2pi], shifted to [-pi, pi]
     fft_len = x.shape[1]
-    w, h = freqz(b, a, worN=fft_len, whole=True)
+    _w, h = freqz(b, a, worN=fft_len, whole=True)
     with np.errstate(divide="ignore", invalid="ignore"):
         h_db = fftshift(20 * np.log10(np.abs(h)))
     freqs = np.linspace(-np.pi, np.pi, fft_len)

@@ -131,10 +131,10 @@ def main():
 
     print(f"Running pulse-pair estimator convergence study for estimator: {args.estimator}...")
 
-    fig, ax = plt.subplots(figsize=(9, 6))
+    _fig, ax = plt.subplots(figsize=(9, 6))
     colors = plt.cm.viridis(np.linspace(0.1, 0.9, len(args.snr_db)))
 
-    for snr_db, color in zip(args.snr_db, colors):
+    for snr_db, color in zip(args.snr_db, colors, strict=False):
         results = []
         snr_label = "Noise-Free" if np.isinf(snr_db) else f"{snr_db} dB"
         print(f"Running study for SNR: {snr_label}...")

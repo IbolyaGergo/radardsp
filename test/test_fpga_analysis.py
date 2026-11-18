@@ -41,7 +41,7 @@ def test_compute_spectral_methods():
 
     # Test median ratio spectrum
     fft_len = x.shape[1]
-    w, h = freqz(b, a, worN=fft_len, whole=True)
+    _w, h = freqz(b, a, worN=fft_len, whole=True)
     h_db = 20 * np.log10(np.abs(h))
 
     median_ratio_db = compute_median_ratio_spectrum(x, y, fft_len=fft_len)

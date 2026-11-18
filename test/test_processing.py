@@ -29,7 +29,6 @@ def test_compute_pulse_phase_difference_shape():
 # test_compute_pulse_phase_difference_values() {{{1
 def test_compute_pulse_phase_difference_values():
     # Test with known constant phase progression (e.g. delta = pi/4 per pulse)
-    n_range = 1
     n_pulse = 4
     delta = np.pi / 4
     pulses = np.array([0.0, delta, 2 * delta, 3 * delta])
@@ -45,7 +44,6 @@ def test_compute_pulse_phase_difference_values():
 # test_compute_pulse_pair_mean() {{{1
 def test_compute_pulse_pair_mean():
     n_range = 1
-    n_pulse = 5
     delta = np.pi / 4
     prf = 1
     pulses = np.array([0.0, delta, 2 * delta, 3 * delta, 4 * delta])

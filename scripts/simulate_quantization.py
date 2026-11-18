@@ -21,7 +21,7 @@ A_COEFFS = [1.00000000, 2.794421010, -2.605942211, 0.810075596]  # Note: C0 is 1
 
 def float_to_q16_int(val: float) -> int:
     """Scale float by 2^16 and round to integer."""
-    return int(round(val * 65536))
+    return round(val * 65536)
 
 
 def q16_int_to_float(int_val: int) -> float:

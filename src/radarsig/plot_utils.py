@@ -63,7 +63,7 @@ def plot_filter_response(
     b, a, worN: int = 512, axes=None, label: str | None = None
 ) -> tuple["fig", "axes"]:
     if axes is None:
-        fig, axes = plt.subplots(2, 1, tight_layout=True, figsize=(8, 6))
+        _fig, axes = plt.subplots(2, 1, tight_layout=True, figsize=(8, 6))
         _format_freqz_axes(*axes)
 
     w, h = freqz(b, a, worN=worN)
