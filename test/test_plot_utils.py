@@ -3,7 +3,11 @@ import numpy as np
 import pytest
 from scipy.signal import get_window
 
-from radarsig.plot_utils import plot_magnitude_spectrum, plot_magnitude_spectrum_ratio
+from radarsig.plot_utils import (
+    plot_filter_magnitude_response,
+    plot_magnitude_spectrum,
+    plot_magnitude_spectrum_ratio,
+)
 
 plt.switch_backend("Agg")
 
@@ -239,3 +243,48 @@ def test_plot_magnitude_spectrum_invalid_input():
 
     with pytest.raises(ValueError, match="scale must be"):
         plot_magnitude_spectrum(np.zeros(4), scale="wat")
+
+
+# test_plot_filter_magnitude_response() {{{1
+def test_plot_filter_magnitude_response():
+    fig, ax = plot_filter_magnitude_response([1.0], [1.0], worN=8)
+
+    freqs, magnitude = ax.lines[0].get_xydata().T
+    np.testing.assert_allclose(freqs, np.linspace(0.0, 0.5, 8, endpoint=False))
+    np.testing.assert_allclose(magnitude, np.ones(8))
+    assert ax.get_xlabel() == "Normalized frequency [cycles/sample]"
+    assert ax.get_ylabel() == "Magnitude"
+    assert fig is ax.get_figure()
+
+
+# test_plot_filter_magnitude_response_db_scale() {{{1
+def test_plot_filter_magnitude_response_db_scale():
+    _, ax = plot_filter_magnitude_response([0.0], [1.0], scale="dB")
+
+    _, magnitude = ax.lines[0].get_xydata().T
+    np.testing.assert_allclose(magnitude, 20 * np.log10(1e-12))
+    assert ax.get_ylabel() == "Magnitude [dB]"
+
+
+# test_plot_filter_magnitude_response_sample_rate() {{{1
+def test_plot_filter_magnitude_response_sample_rate():
+    _, ax = plot_filter_magnitude_response([1.0], [1.0], worN=8, sample_rate=100.0)
+
+    freqs, _ = ax.lines[0].get_xydata().T
+    np.testing.assert_allclose(freqs, np.linspace(0.0, 50.0, 8, endpoint=False))
+    assert ax.get_xlabel() == "Frequency [Hz]"
+
+
+# test_plot_filter_magnitude_response_label() {{{1
+def test_plot_filter_magnitude_response_label():
+    _, ax = plot_filter_magnitude_response([1.0], [1.0], label="Ideal")
+
+    legend = ax.get_legend()
+    assert legend is not None
+    assert legend.get_texts()[0].get_text() == "Ideal"
+
+
+# test_plot_filter_magnitude_response_invalid_scale() {{{1
+def test_plot_filter_magnitude_response_invalid_scale():
+    with pytest.raises(ValueError, match="scale must be"):
+        plot_filter_magnitude_response([1.0], [1.0], scale="wat")

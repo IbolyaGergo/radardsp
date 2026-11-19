@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.fft import fft, fftfreq, fftshift
-from scipy.signal import get_window, lfilter
+from scipy.signal import freqz, get_window, lfilter
 
 
 # _apply_filter() {{{1
@@ -204,3 +204,36 @@ def compute_spectrum(
         freqs = fftshift(fftfreq(n, d=1.0 / sample_rate))
 
     return freqs, spectrum
+
+
+# compute_filter_response() {{{1
+def compute_filter_response(
+    b: np.ndarray,
+    a: np.ndarray,
+    *,
+    worN: int = 512,
+    sample_rate: float | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Compute the complex frequency response of a digital filter.
+
+    Parameters:
+        b: Numerator coefficients.
+        a: Denominator coefficients.
+        worN: Number of frequencies to evaluate, following scipy.signal.freqz
+              semantics. Frequencies span 0 up to (but excluding) Nyquist.
+        sample_rate: Sampling rate in Hz. If None, frequencies are normalized
+                     (cycles/sample); otherwise they are in Hz.
+
+    Returns:
+        tuple[np.ndarray, np.ndarray]:
+            - freqs: Frequency array of shape (worN,)
+            - response: Complex frequency response
+    """
+    w, h = freqz(b, a, worN=worN)
+    if sample_rate is None:
+        freqs = w / (2.0 * np.pi)
+    else:
+        freqs = w * sample_rate / (2.0 * np.pi)
+
+    return freqs, h

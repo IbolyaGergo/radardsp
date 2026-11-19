@@ -3,6 +3,7 @@ import pytest
 from scipy.signal import get_window
 
 from radarsig.processing import (
+    compute_filter_response,
     compute_pulse_pair_mean,
     compute_pulse_pair_snr,
     compute_pulse_pair_snr_db,
@@ -233,3 +234,18 @@ def test_compute_spectrum_nd():
 def test_compute_spectrum_window_length_mismatch():
     with pytest.raises(ValueError, match="window must have length 8"):
         compute_spectrum(np.ones(8), window=np.ones(7))
+
+
+# test_compute_filter_response() {{{1
+def test_compute_filter_response():
+    freqs, response = compute_filter_response([1.0], [1.0], worN=8)
+
+    np.testing.assert_allclose(freqs, np.linspace(0.0, 0.5, 8, endpoint=False))
+    np.testing.assert_allclose(response, np.ones(8))
+
+
+# test_compute_filter_response_sample_rate() {{{1
+def test_compute_filter_response_sample_rate():
+    freqs, _ = compute_filter_response([1.0], [1.0], worN=8, sample_rate=100.0)
+
+    np.testing.assert_allclose(freqs, np.linspace(0.0, 50.0, 8, endpoint=False))

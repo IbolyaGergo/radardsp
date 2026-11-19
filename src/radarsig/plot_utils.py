@@ -5,7 +5,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from scipy.signal import freqz
 
-from radarsig.processing import compute_spectrum
+from radarsig.processing import compute_filter_response, compute_spectrum
 
 
 # make_iq_plotter() {{{1
@@ -145,6 +145,68 @@ def plot_magnitude_spectrum(
     freqs, magnitude = _validated_magnitude_spectrum(
         signal, sample_rate=sample_rate, window=window, pad_to=pad_to
     )
+
+    xlabel = "Normalized frequency [cycles/sample]" if sample_rate is None else "Frequency [Hz]"
+    if scale == "dB":
+        magnitude = 20 * np.log10(np.maximum(magnitude, 1e-12))
+        ylabel = "Magnitude [dB]"
+    else:
+        ylabel = "Magnitude"
+
+    if ax is None:
+        fig, ax = plt.subplots(tight_layout=True)
+    else:
+        fig = ax.get_figure()
+
+    ax.plot(freqs, magnitude, label=label)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.grid(True)
+    if label:
+        ax.legend()
+
+    return fig, ax
+
+
+# plot_filter_magnitude_response() {{{1
+def plot_filter_magnitude_response(
+    b,
+    a,
+    *,
+    worN: int = 512,
+    sample_rate: float | None = None,
+    scale: Literal["linear", "dB"] = "linear",
+    ax: plt.Axes | None = None,
+    label: str | None = None,
+) -> tuple[plt.Figure, plt.Axes]:
+    """
+    Plot the magnitude response of a digital filter.
+
+    The response is evaluated with scipy.signal.freqz on the one-sided
+    frequency range from 0 up to Nyquist, excluding the Nyquist bin (following
+    freqz semantics).
+
+    Unlike matplotlib's ``Axes.magnitude_spectrum``, this function floors dB
+    values at 1e-12 and returns the (figure, axes) pair.
+
+    Args:
+        b: Numerator coefficients.
+        a: Denominator coefficients.
+        worN: Number of frequencies to evaluate, following freqz semantics.
+        sample_rate: Sampling rate in Hz. If None, the x-axis is normalized
+                     frequency in cycles/sample. If given, the x-axis is in Hz.
+        scale: "linear" for magnitude, "dB" for 20*log10(magnitude).
+        ax: Axes to draw on. If None, a new figure and axes are created.
+        label: Optional line label, shown in a legend when provided.
+
+    Returns:
+        The figure and axes containing the plot.
+    """
+    if scale not in ("linear", "dB"):
+        raise ValueError(f"scale must be 'linear' or 'dB', got {scale!r}")
+
+    freqs, response = compute_filter_response(b, a, worN=worN, sample_rate=sample_rate)
+    magnitude = np.abs(response)
 
     xlabel = "Normalized frequency [cycles/sample]" if sample_rate is None else "Frequency [Hz]"
     if scale == "dB":
