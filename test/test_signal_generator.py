@@ -12,6 +12,7 @@ from scipy.fft import fft, fftfreq, fftshift
 from radarsig.signal_generator import (
     _autocorr_threshold,
     _first_lag_below_threshold,
+    _gaussian_doppler_samples,
     _sim_length,
     generate_gaussian_doppler_signal,
 )
@@ -31,37 +32,79 @@ def _width_hz(width_v: float) -> float:
     return PRF * width_v / (2 * NYQUIST_VELOCITY)
 
 
+def _psd_mean_and_variance(iq: np.ndarray, prf: float) -> tuple[float, float]:
+    """Mean frequency (Hz) and frequency variance (Hz^2) of the spectrum of `iq`."""
+    freqs = fftshift(fftfreq(len(iq), d=1.0 / prf))
+    psd = np.abs(fftshift(fft(iq))) ** 2
+    psd_norm = psd / np.sum(psd)  # treat the PSD as a discrete distribution
+    mean_freq = np.sum(freqs * psd_norm)
+    return mean_freq, np.sum(psd_norm * (freqs - mean_freq) ** 2)
+
+
 # test_generate_gaussian_doppler_signal_width() {{{1
 def test_generate_gaussian_doppler_signal_width():
     n_pulses = 1024
     prf = 100.0
     true_mean = 15.0
     width = 3.0  # Hz
-    seed = 42
+    n_seeds = 10
 
+    estimates = [
+        _psd_mean_and_variance(
+            generate_gaussian_doppler_signal(
+                n_pulses=n_pulses, prf=prf, mean=true_mean, width=width, seed=seed
+            ),
+            prf=prf,
+        )
+        for seed in range(n_seeds)
+    ]
+    mean_freq, est_variance = np.mean(estimates, axis=0)
+
+    # A single periodogram-based estimate is noisy (relative std ~12 %) and biased ~7 % high
+    # for this width, so assert on the mean over seeds with a matching tolerance.
+    np.testing.assert_allclose(mean_freq, true_mean, atol=2.0)
+    np.testing.assert_allclose(est_variance, width**2, rtol=0.15)
+
+
+# test_generate_gaussian_doppler_signal_shape() {{{1
+@pytest.mark.parametrize("avoid_wraparound", [True, False], ids=["trimmed", "legacy"])
+def test_generate_gaussian_doppler_signal_shape(avoid_wraparound):
     iq = generate_gaussian_doppler_signal(
-        n_pulses=n_pulses,
-        prf=prf,
-        mean=true_mean,
-        width=width,
-        seed=seed,
+        n_pulses=N_PULSES,
+        prf=PRF,
+        mean=15.0,
+        width=_width_hz(4.0),
+        seed=0,
+        avoid_wraparound=avoid_wraparound,
     )
 
-    # Compute shifted FFT and Power Spectral Density (PSD)
-    freqs = fftshift(fftfreq(n_pulses, d=1.0 / prf))
-    spectrum = fftshift(fft(iq))
-    psd = np.abs(spectrum) ** 2
+    assert iq.shape == (N_PULSES,)
 
-    # Normalize PSD to form a discrete probability distribution
-    psd_norm = psd / np.sum(psd)
 
-    # Compute mean frequency and frequency variance from the PSD
-    mean_freq = np.sum(freqs * psd_norm)
-    est_variance = np.sum(psd_norm * (freqs - mean_freq) ** 2)
+# test_generate_gaussian_doppler_signal_trims_sim_length() {{{1
+def test_generate_gaussian_doppler_signal_trims_sim_length():
+    width = _width_hz(4.0)
+    mean = 15.0
+    seed = 7
+    # 25 samples are simulated for these parameters, so trimming is observable.
+    n_sim = _sim_length(N_PULSES, PRF, width)
+    assert n_sim > N_PULSES
 
-    # Verify center frequency and spectral variance
-    np.testing.assert_allclose(mean_freq, true_mean, atol=2.0)
-    np.testing.assert_allclose(est_variance, width**2, rtol=0.01)
+    # Default: simulate n_sim samples, return the first n_pulses of them.
+    np.random.seed(seed)  # mirrors the global seeding used by the generator
+    expected = _gaussian_doppler_samples(n_sim, PRF, mean, width)
+    iq = generate_gaussian_doppler_signal(
+        n_pulses=N_PULSES, prf=PRF, mean=mean, width=width, seed=seed
+    )
+    np.testing.assert_array_equal(iq, expected[:N_PULSES])
+
+    # Legacy: simulate exactly n_pulses samples, no trimming.
+    np.random.seed(seed)
+    expected_legacy = _gaussian_doppler_samples(N_PULSES, PRF, mean, width)
+    iq_legacy = generate_gaussian_doppler_signal(
+        n_pulses=N_PULSES, prf=PRF, mean=mean, width=width, seed=seed, avoid_wraparound=False
+    )
+    np.testing.assert_array_equal(iq_legacy, expected_legacy)
 
 
 # test_autocorr_threshold() {{{1

@@ -52,6 +52,50 @@ def _sim_length(
     return int(max(2 * lag + 1, n_pulses + lag))
 
 
+# _gaussian_doppler_samples() {{{1
+def _gaussian_doppler_samples(
+    n_samples: int,
+    prf: float,
+    mean: float,
+    width: float,
+    snr_db: float | None = None,
+) -> np.ndarray:
+    """Complex Gaussian-spectrum time-series of `n_samples` samples.
+
+    The series is generated in the frequency domain and is therefore periodic with period
+    `n_samples`; deciding how much of it is kept is left to the caller (see
+    generate_gaussian_doppler_signal).
+    """
+    dt = 1.0 / prf
+    t = np.arange(n_samples) * dt
+    freqs = fftfreq(n_samples, d=dt)
+
+    # Desired Gaussian PSD centered at 0 Hz
+    psd = np.exp(-(freqs**2) / (2 * width**2))
+    s0_power = np.sum(psd)
+
+    if snr_db is not None:
+        # snr_db = 10 * log10(S_0 / N) => N = S_0 / 10**(snr_db / 10)
+        snr = 10 ** (snr_db / 10.0)
+        noise_power = s0_power / snr
+        # divide noise across all frequency bins
+        noise_floor = noise_power / n_samples
+        psd_total = psd + noise_floor
+    else:
+        psd_total = psd
+
+    # Generate complex white noise in frequency domain and shape with PSD
+    noise_freq = (np.random.randn(n_samples) + 1j * np.random.randn(n_samples)) / np.sqrt(2)
+    # psd represents power, so we take the sqrt to get the amplitude of the spectrum
+    shaped_freq = noise_freq * np.sqrt(psd_total)
+
+    # IFFT to time domain
+    iq_base = ifft(shaped_freq) * np.sqrt(n_samples)
+
+    # Apply Doppler shift (moving target)
+    return iq_base * np.exp(1j * 2 * np.pi * mean * t)
+
+
 # generate_gaussian_doppler_signal() {{{1
 def generate_gaussian_doppler_signal(
     n_pulses: int,
@@ -60,6 +104,8 @@ def generate_gaussian_doppler_signal(
     width: float,
     snr_db: float | None = None,
     seed: int | None = None,
+    avoid_wraparound: bool = True,
+    autocorr_threshold: float | None = None,
 ) -> np.ndarray:
     """
     Generate a complex time-series (pulse returns) whose power spectral density
@@ -74,6 +120,14 @@ def generate_gaussian_doppler_signal(
     - snr_db: Signal-to-noise ratio in dB, defined as 10*log10(S_0 / N), where S_0 is the
       signal power and N is the noise power
     - seed: Random seed for reproducibility (optional)
+    - avoid_wraparound: Simulate _sim_length(...) samples and return only the first
+      n_pulses of them, so that the retained pulses are not correlated with their own
+      wrapped copy. This costs _sim_length(...) / n_pulses more work. With False the
+      series is simulated at exactly n_pulses samples and the wrap-around bias of
+      Curtis (2018) is present. Note that the benefit is a property of the simulated
+      process and cannot be measured from the returned samples alone.
+    - autocorr_threshold: Autocorrelation threshold (dB) used by _sim_length(...); only
+      relevant when avoid_wraparound is True. None selects the article's formula.
 
     Returns:
     - iq: Complex time-series array of shape (n_pulses,)
@@ -81,33 +135,10 @@ def generate_gaussian_doppler_signal(
     if seed is not None:
         np.random.seed(seed)
 
-    dt = 1.0 / prf
-    t = np.arange(n_pulses) * dt
-    freqs = fftfreq(n_pulses, d=dt)
+    # Simulate longer than needed so that the periodic nature of the spectrally generated
+    # series does not distort the autocorrelation of the returned pulses.
+    n_samples = (
+        _sim_length(n_pulses, prf, width, autocorr_threshold) if avoid_wraparound else n_pulses
+    )
 
-    # Desired Gaussian PSD centered at 0 Hz
-    psd = np.exp(-(freqs**2) / (2 * width**2))
-    s0_power = np.sum(psd)
-
-    if snr_db is not None:
-        # snr_db = 10 * log10(S_0 / N) => N = S_0 / 10**(snr_db / 10)
-        snr = 10 ** (snr_db / 10.0)
-        noise_power = s0_power / snr
-        # divide noise across all frequency bins
-        noise_floor = noise_power / n_pulses
-        psd_total = psd + noise_floor
-    else:
-        psd_total = psd
-
-    # Generate complex white noise in frequency domain and shape with PSD
-    noise_freq = (np.random.randn(n_pulses) + 1j * np.random.randn(n_pulses)) / np.sqrt(2)
-    # psd represents power, so we take the sqrt to get the amplitude of the spectrum
-    shaped_freq = noise_freq * np.sqrt(psd_total)
-
-    # IFFT to time domain
-    iq_base = ifft(shaped_freq) * np.sqrt(n_pulses)
-
-    # Apply Doppler shift (moving target)
-    iq = iq_base * np.exp(1j * 2 * np.pi * mean * t)
-
-    return iq
+    return _gaussian_doppler_samples(n_samples, prf, mean, width, snr_db)[:n_pulses]
