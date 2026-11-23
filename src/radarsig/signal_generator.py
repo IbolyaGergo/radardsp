@@ -2,6 +2,56 @@ import numpy as np
 from scipy.fft import fftfreq, ifft
 
 
+# _autocorr_threshold() {{{1
+def _autocorr_threshold(n_pulses: int, prf: float, width: float) -> float:
+    """Autocorrelation threshold (dB).
+
+    From Curtis (2018):
+    It is capped at 25 dB so that narrow spectra do not make the required
+    series length grow without bound.
+    """
+    threshold = min(25.0, 10 + 5 / np.log(10) * (2 * np.pi * width * (n_pulses - 1) / prf) ** 2)
+    return threshold
+
+
+# _first_lag_below_threshold() {{{1
+def _first_lag_below_threshold(prf: float, width: float, threshold: float) -> int:
+    """Smallest lag (in pulses) at which the Gaussian autocorrelation has dropped below
+    `threshold` (dB).
+
+    For a Gaussian spectrum of standard deviation `width` (Hz) the autocorrelation is
+    rho(tau) = exp(-2 * (pi * width * tau)**2), so setting 10 * log10(rho) = -threshold and
+    converting to a lag (tau * prf) gives the expression below.
+    """
+    # int(...) so that callers get a plain integer length rather than a numpy scalar.
+    return int(np.ceil(prf / (2 * np.pi * width) * np.sqrt(np.log(10) / 5 * threshold)))
+
+
+# _sim_length() {{{1
+def _sim_length(
+    n_pulses: int, prf: float, width: float, autocorr_threshold: float | None = None
+) -> int:
+    """Number of samples to simulate for `n_pulses` pulses, so that the autocorrelation of the
+    resulting series is not distorted by the series being circularly wrapped.
+
+    Based on the article
+    Curtis, C. D., 2018: Weather radar time series simulation: Improving accuracy and performance.
+    J. Atmos. Oceanic Technol., 35, 2169–2187, https://doi.org/10.1175/JTECH-D-17-0215.1."""
+
+    threshold = (
+        autocorr_threshold
+        if autocorr_threshold is not None
+        else _autocorr_threshold(n_pulses, prf, width)
+    )
+    # Lag beyond which the autocorrelation is considered negligible.
+    lag = _first_lag_below_threshold(prf, width, threshold)
+
+    # The series is generated spectrally and is therefore periodic: keep enough samples that
+    # the retained pulses are at least `lag` samples away from their wrapped copy, and that the
+    # autocorrelation at lag `lag` still fits into the simulated window.
+    return int(max(2 * lag + 1, n_pulses + lag))
+
+
 # generate_gaussian_doppler_signal() {{{1
 def generate_gaussian_doppler_signal(
     n_pulses: int,
