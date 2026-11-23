@@ -1,3 +1,10 @@
+"""Tests for radarsig.signal_generator.
+
+Numeric examples follow
+Curtis, C. D., 2018: Weather radar time series simulation: Improving accuracy and performance.
+J. Atmos. Oceanic Technol., 35, 2169–2187, https://doi.org/10.1175/JTECH-D-17-0215.1.
+"""
+
 import numpy as np
 import pytest
 from scipy.fft import fft, fftfreq, fftshift
@@ -8,6 +15,20 @@ from radarsig.signal_generator import (
     _sim_length,
     generate_gaussian_doppler_signal,
 )
+
+# Parameters of the example used throughout the article.
+N_PULSES = 16
+PRF = 100.0  # Hz
+NYQUIST_VELOCITY = 32.0  # m/s
+
+
+def _width_hz(width_v: float) -> float:
+    """Spectral width in Hz from a width given in velocity units (m/s).
+
+    The article parameterises the spectrum by its mean/width ratio in velocity units; with
+    the Nyquist velocity v_a that ratio gives width_f = prf * width_v / (2 * v_a).
+    """
+    return PRF * width_v / (2 * NYQUIST_VELOCITY)
 
 
 # test_generate_gaussian_doppler_signal_width() {{{1
@@ -43,57 +64,45 @@ def test_generate_gaussian_doppler_signal_width():
     np.testing.assert_allclose(est_variance, width**2, rtol=0.01)
 
 
-"""Examples from the article
-Curtis, C. D., 2018: Weather radar time series simulation: Improving accuracy and performance.
-J. Atmos. Oceanic Technol., 35, 2169–2187, https://doi.org/10.1175/JTECH-D-17-0215.1."""
-
-
 # test_autocorr_threshold() {{{1
-def test_autocorr_threshold():
-    n_pulses = 16
-    v_a = 32
-    prf = 100
+@pytest.mark.parametrize(
+    ("width_v", "expected"),
+    [
+        (4.0, 25.0),  # formula gives 25.98 dB -> capped at 25 dB
+        (0.5, 11.17727150175935),
+    ],
+    ids=["capped-at-max", "below-max"],
+)
+def test_autocorr_threshold(width_v, expected):
+    threshold = _autocorr_threshold(N_PULSES, PRF, _width_hz(width_v))
 
-    width_v = 4
-    mean_width_ratio = v_a / width_v
-    width_f = prf / (2 * mean_width_ratio)  # in Hz
-
-    threshold = _autocorr_threshold(n_pulses, prf, width_f)
-    assert threshold == pytest.approx(25.0)
-
-    width_v = 0.5
-    mean_width_ratio = v_a / width_v
-    width_f = prf / (2 * mean_width_ratio)  # in Hz
-
-    threshold = _autocorr_threshold(n_pulses, prf, width_f)
-    assert threshold == pytest.approx(11.17727150175935)
+    assert threshold == pytest.approx(expected)
 
 
-# test_lag_below_threshold() {{{1
-def test_lag_below_threshold():
-    v_a = 32
-    prf = 100
+# test_first_lag_below_threshold() {{{1
+def test_first_lag_below_threshold():
+    # With a 25 dB threshold and a 4 m/s width the first lag below it is 9 pulses.
+    lag = _first_lag_below_threshold(PRF, _width_hz(4.0), threshold=25.0)
 
-    width_v = 4
-    mean_width_ratio = v_a / width_v
-    width_f = prf / (2 * mean_width_ratio)  # in Hz
-
-    threshold = 25  # dB
-
-    assert _first_lag_below_threshold(prf, width_f, threshold) == 9
+    assert lag == 9
 
 
 # test_sim_length() {{{1
-def test_sim_length():
-    n_pulses = 16
-    v_a = 32
-    prf = 100
+@pytest.mark.parametrize(
+    ("threshold", "expected"),
+    [(25.0, 141), (None, 95)],
+    ids=["fixed-threshold", "adaptive-threshold"],
+)
+def test_sim_length(threshold, expected):
+    length = _sim_length(N_PULSES, PRF, _width_hz(0.5), autocorr_threshold=threshold)
 
-    width_v = 0.5
-    mean_width_ratio = v_a / width_v
-    width_f = prf / (2 * mean_width_ratio)  # in Hz
+    assert length == expected
 
-    # if the threshold is 25 dB
-    assert _sim_length(n_pulses, prf, width_f, autocorr_threshold=25) == 141
-    # if threshold is according to the formula in the article
-    assert _sim_length(n_pulses, prf, width_f) == 95
+
+# test_sim_length_is_at_least_one_extra_lag() {{{1
+@pytest.mark.parametrize("width_v", [0.25, 0.5, 1.0, 4.0])
+def test_sim_length_is_at_least_one_extra_lag(width_v):
+    width_f = _width_hz(width_v)
+    lag = _first_lag_below_threshold(PRF, width_f, _autocorr_threshold(N_PULSES, PRF, width_f))
+
+    assert _sim_length(N_PULSES, PRF, width_f) >= N_PULSES + lag
